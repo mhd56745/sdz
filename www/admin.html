@@ -1,0 +1,2080 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة التحكم</title>
+<style>
+    :root {
+        --bg: #0b1020; --card: #141b33; --card2: #101731; --line: #232e57;
+        --accent: #4f8cff; --accent2: #22c55e; --danger: #ef4444; --warn: #f59e0b;
+        --text: #eef2ff; --muted: #93a0c2; --radius: 14px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+        font-family: "Segoe UI", Tahoma, "Noto Sans Arabic", Arial, sans-serif;
+        background: radial-gradient(1200px 600px at 80% -10%, #1b2650 0%, var(--bg) 55%);
+        color: var(--text); min-height: 100vh; padding: 0 14px 60px;
+    }
+    .hidden { display: none !important; }
+    a { color: var(--accent); text-decoration: none; }
+    button { font-family: inherit; cursor: pointer; }
+    input, select, textarea {
+        font-family: inherit; width: 100%; color: var(--text);
+        background: #0d1428; border: 1px solid var(--line); border-radius: 10px;
+        padding: 10px 12px; font-size: 14px; outline: none;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+    textarea { min-height: 130px; resize: vertical; direction: ltr; text-align: left; font-size: 12px; }
+
+    /* ---------- دخول ---------- */
+    .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .login-card {
+        width: 100%; max-width: 380px; background: var(--card);
+        border: 1px solid var(--line); border-radius: var(--radius); padding: 30px 26px;
+        box-shadow: 0 18px 50px rgba(0,0,0,.45);
+    }
+    .login-card h1 { font-size: 20px; margin-bottom: 6px; }
+    .login-card p { color: var(--muted); font-size: 13px; margin-bottom: 18px; line-height: 1.8; }
+    .login-card .err { color: var(--danger); font-size: 13px; min-height: 18px; margin: 8px 0; }
+
+    /* ---------- الهيكل ---------- */
+    .topbar {
+        display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+        padding: 16px 2px;
+    }
+    .brand { font-size: 20px; font-weight: 800; display: flex; align-items: center; gap: 9px; }
+    .brand .dot { width: 11px; height: 11px; border-radius: 50%; background: var(--danger);
+        box-shadow: 0 0 12px var(--danger); animation: pulse 1.6s infinite; }
+    @keyframes pulse { 0%,100% {opacity: 1;} 50% {opacity: .35;} }
+    .topbar .spacer { flex: 1; }
+    .btn {
+        border: 1px solid var(--line); background: #182142; color: var(--text);
+        padding: 9px 16px; border-radius: 10px; font-size: 13.5px; transition: .15s;
+    }
+    .btn:hover { border-color: var(--accent); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+    .btn.primary:hover { filter: brightness(1.1); }
+    .btn.danger { color: #ffb4b4; border-color: #5b2530; }
+    .btn.danger:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
+    .btn.small { padding: 6px 12px; font-size: 12.5px; border-radius: 8px; }
+
+    .tabs { display: flex; gap: 8px; border-bottom: 1px solid var(--line); margin-bottom: 18px; flex-wrap: wrap; }
+    .tabs button {
+        background: none; border: none; color: var(--muted); font-size: 15px;
+        padding: 10px 16px; border-bottom: 2px solid transparent; margin-bottom: -1px;
+    }
+    .tabs button.active { color: var(--text); border-bottom-color: var(--accent); font-weight: 700; }
+
+    /* ---------- لوحة الحرق داخل الفيديو ---------- */
+    .burn-stage { display: flex; align-items: center; gap: 10px; margin: 10px 0; font-size: 13px; color: var(--muted); }
+    .burn-stage .lbl { min-width: 175px; }
+    .burn-stage .progress { flex: 1; height: 7px; margin-top: 0; }
+    .burn-stage .pct { min-width: 44px; text-align: left; direction: ltr; font-size: 12px; }
+    .burn-stage.active { color: var(--text); font-weight: 700; }
+    .burn-stage.active .progress i { background: var(--accent2); }
+
+    /* ---------- الاستوديو ---------- */
+    .chk { display: flex; align-items: center; gap: 8px; font-size: 14px; margin: 10px 0; cursor: pointer; }
+    .chk input { width: auto; accent-color: var(--accent); }
+    .studio-preview {
+        position: relative; aspect-ratio: 16/9; border: 1px solid var(--line);
+        border-radius: var(--radius); overflow: hidden;
+        background: linear-gradient(135deg, #1b2650, #3b1f4e 55%, #0b1020);
+    }
+    .studio-preview::after {
+        content: ""; position: absolute; inset: 0; margin: auto;
+        width: 64px; height: 64px; border-radius: 14px; background: rgba(255,255,255,.06);
+    }
+    .studio-preview .tvs-logo { position: absolute; filter: drop-shadow(0 2px 6px rgba(0,0,0,.55)); }
+    .studio-preview .tvs-now {
+        position: absolute; background: rgba(0,0,0,.62); color: #fff;
+        padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 700;
+    }
+    .studio-preview .tvs-now b { color: #ffd166; }
+    .studio-preview .tvs-ticker {
+        position: absolute; left: 0; right: 0; bottom: 0; display: flex;
+        align-items: center; overflow: hidden; white-space: nowrap; font-weight: 700; font-size: 13px;
+    }
+    .studio-preview .tvs-ticker span { display: inline-block; direction: rtl; }
+    #studioPrev .tvs-ticker span { animation: prevscroll 9s linear infinite; }
+    @keyframes prevscroll { from { transform: translateX(-100%); } to { transform: translateX(110%); } }
+
+    /* ---------- محرر بأسلوب OBS ---------- */
+    .studio-preview .pv-drag { cursor: move; touch-action: none; }
+    .studio-preview .dragging { outline: 1px dashed rgba(255,255,255,.7); outline-offset: 2px; }
+    .studio-preview .pv-txt {
+        position: absolute; white-space: nowrap; font-weight: 700; line-height: 1.25;
+        text-shadow: 0 1px 3px rgba(0,0,0,.55); padding: 1px 8px; border-radius: 4px;
+        max-width: 96%; overflow: hidden;
+    }
+    .layer-row {
+        display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; align-items: center;
+        border: 1px solid var(--line); border-radius: var(--radius); padding: 10px;
+        margin: 8px 0; background: rgba(255,255,255,.02);
+    }
+    .layer-row .lr-main { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .layer-row .lr-main input[type="text"] { flex: 1 1 140px; min-width: 110px; }
+    .layer-row .lr-main input[type="color"] { width: 38px; height: 30px; padding: 2px; }
+    .layer-row .lr-main input[type="range"] { width: 90px; }
+    .layer-row .lr-pos { font-size: 11.5px; color: var(--muted); direction: ltr; text-align: left; }
+
+    .wrap { max-width: 1020px; margin: 0 auto; }
+    .panel { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+        padding: 18px; margin-bottom: 18px; }
+    .panel h2 { font-size: 16px; margin-bottom: 14px; }
+    .panel .hint { color: var(--muted); font-size: 12.5px; line-height: 1.9; margin-top: 8px; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .grid3 { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: end; }
+    @media (max-width: 760px) { .grid2, .grid3 { grid-template-columns: 1fr; } }
+    label.fld { display: block; font-size: 12.5px; color: var(--muted); margin-bottom: 5px; }
+    .fld-box { margin-bottom: 12px; }
+
+    /* ---------- بطاقات القنوات ---------- */
+    .ch-card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+        padding: 16px; margin-bottom: 14px; }
+    .ch-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+    .ch-head .name { font-size: 16.5px; font-weight: 700; }
+    .chip { font-size: 11px; border: 1px solid var(--line); color: var(--muted);
+        border-radius: 999px; padding: 3px 10px; }
+    .chip.vod { color: #9dd0ff; border-color: #2b4a7a; }
+    .chip.live { color: #ffb1b1; border-color: #5b2530; }
+    .chip.id { direction: ltr; }
+    .now-line { background: var(--card2); border: 1px dashed var(--line); border-radius: 10px;
+        padding: 9px 12px; font-size: 13px; color: #cfe0ff; margin-bottom: 12px; }
+    .now-line b { color: #fff; }
+    .now-line .sub { color: var(--muted); font-size: 12px; margin-top: 3px; }
+    .progress { height: 5px; background: #0d1428; border-radius: 99px; overflow: hidden; margin-top: 6px; }
+    .progress i { display: block; height: 100%; background: var(--accent); }
+
+    .pub-grid { display: grid; gap: 8px; }
+    .pub-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .pub-row .lbl { font-size: 12.5px; color: var(--muted); min-width: 130px; }
+    .pub-row code {
+        flex: 1; min-width: 200px; direction: ltr; text-align: left; font-size: 12px;
+        color: #bcd0ff; background: #0d1428; border: 1px dashed var(--line);
+        border-radius: 8px; padding: 7px 10px; overflow-wrap: anywhere;
+    }
+    .ch-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+
+    /* ---------- محرر القائمة ---------- */
+    .pl-editor { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
+    @media (max-width: 760px) { .pl-editor { grid-template-columns: 1fr; } }
+    .pl-col { background: var(--card2); border: 1px solid var(--line); border-radius: 10px;
+        padding: 10px; max-height: 240px; overflow: auto; }
+    .pl-col h4 { font-size: 12.5px; color: var(--muted); margin-bottom: 8px; font-weight: 600; }
+    .pl-item { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 8px;
+        font-size: 13px; cursor: pointer; }
+    .pl-item:hover { background: #182142; }
+    .pl-item .t { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pl-item .d { color: var(--muted); font-size: 11px; direction: ltr; }
+    .pl-item .mini { border: 1px solid var(--line); background: #182142; color: var(--text);
+        border-radius: 6px; padding: 2px 8px; font-size: 11px; }
+    .pl-empty { color: var(--muted); font-size: 12.5px; padding: 8px; }
+
+    /* ---------- مكتبة الفيديو ---------- */
+    .vid-card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+        padding: 14px; margin-bottom: 12px; }
+    .vid-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .vid-head .name { font-weight: 700; font-size: 15px; flex: 1; min-width: 160px;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .meta { color: var(--muted); font-size: 12px; display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; direction: ltr; }
+    .badge { font-size: 11.5px; border-radius: 999px; padding: 3px 10px; border: 1px solid; }
+    .badge.ready { color: #86efac; border-color: #14532d; background: rgba(34,197,94,.08); }
+    .badge.busy  { color: #9dd0ff; border-color: #2b4a7a; background: rgba(79,140,255,.08); }
+    .badge.error { color: #ffb4b4; border-color: #5b2530; background: rgba(239,68,68,.08); }
+    .err-text { color: #ffb4b4; font-size: 12.5px; margin-top: 8px; line-height: 1.7; }
+    .url-line { direction: ltr; text-align: left; color: var(--muted); font-size: 11px;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 6px; }
+
+    .toast {
+        position: fixed; bottom: 22px; right: 50%; transform: translateX(50%);
+        background: #10b981; color: #04281a; font-weight: 700;
+        padding: 10px 18px; border-radius: 999px; font-size: 14px;
+        opacity: 0; pointer-events: none; transition: .3s; z-index: 50;
+    }
+    .toast.show { opacity: 1; }
+    .toast.err { background: var(--danger); color: #fff; }
+</style>
+</head>
+<body>
+
+<!-- ========== شاشة الدخول ========== -->
+<div class="login-wrap" id="loginView">
+    <div class="login-card">
+        <h1>لوحة التحكم</h1>
+        <p>أدخل كلمة مرور اللوحة للإدارة (متغير البيئة <b>ADMIN_PASSWORD</b> — الافتراضية <code>admin123</code>، غيّرها من إعدادات Koyeb).</p>
+        <div class="fld-box"><input type="password" id="pwd" placeholder="كلمة المرور" autocomplete="current-password"></div>
+        <button class="btn primary" id="loginBtn" style="width:100%">دخول</button>
+        <div class="err" id="loginErr"></div>
+    </div>
+</div>
+
+<!-- ========== التطبيق ========== -->
+<div class="wrap hidden" id="appView">
+    <div class="topbar">
+        <div class="brand"><span class="dot"></span><span id="brandName">لوحة التحكم</span></div>
+        <div class="spacer"></div>
+        <a class="btn" href="/" target="_blank">فتح الموقع ↗</a>
+        <button class="btn" id="logoutBtn">خروج</button>
+    </div>
+
+    <div class="tabs">
+        <button data-tab="channels" class="active">القنوات</button>
+        <button data-tab="library">مكتبة الفيديو</button>
+        <button data-tab="studio">الاستوديو</button>
+        <button data-tab="backup">النسخ الاحتياطي</button>
+    </div>
+
+    <!-- ===== القنوات ===== -->
+    <section id="tab-channels">
+        <div class="panel">
+            <h2>إنشاء قناة جديدة</h2>
+            <div class="grid3">
+                <div class="fld-box"><label class="fld">اسم القناة</label><input id="chName" placeholder="مثال: أفلام 24"></div>
+                <div class="fld-box"><label class="fld">النوع</label>
+                    <select id="chType">
+                        <option value="vod">قناة فيديو (قائمة تشغيل 24/7)</option>
+                        <option value="restream">بث خارجي (رابط m3u8 / TS)</option>
+                    </select></div>
+                <div class="fld-box"><label class="fld">المعرّف (اختياري — لاتيني)</label><input id="chId" placeholder="movies" style="direction:ltr"></div>
+            </div>
+
+            <div id="vodFields">
+                <div class="pl-editor">
+                    <div class="pl-col" id="plAvailable"><h4>فيديوهات المكتبة (اضغط للإضافة)</h4></div>
+                    <div class="pl-col" id="plSelected"><h4>قائمة التشغيل (بالترتيب)</h4></div>
+                </div>
+                <p class="hint">تُعرض الفيديوهات بالترتيب ثم تتكرر تلقائياً 24/7 — كل مشاهدي القناة يرون نفس المحتوى في نفس اللحظة.</p>
+            </div>
+
+            <div id="restreamFields" class="hidden">
+                <div class="grid2">
+                    <div class="fld-box"><label class="fld">رابط البث الخارجي</label><input id="chUrl" placeholder="https://example.com/live/index.m3u8" style="direction:ltr"></div>
+                    <div class="fld-box"><label class="fld">النوع</label>
+                        <select id="chSourceType">
+                            <option value="auto">اكتشاف تلقائي</option>
+                            <option value="hls">HLS (m3u8)</option>
+                            <option value="ts">TS متواصل</option>
+                        </select></div>
+                </div>
+                <p class="hint">يدعم روابط قوائم m3u8 وروابط TS المتواصلة — يُعاد بثها عبر محطتك مع روابط مستقرة.</p>
+            </div>
+
+            <div style="margin-top:14px"><button class="btn primary" id="createChBtn">إنشاء القناة</button></div>
+        </div>
+
+        <h2 style="margin: 4px 0 12px; font-size:16px">قنواتي</h2>
+        <div id="channelsList"></div>
+    </section>
+
+    <!-- ===== مكتبة الفيديو ===== -->
+    <section id="tab-library" class="hidden">
+        <div class="panel">
+            <h2>إضافة فيديو بالرابط المباشر</h2>
+            <div class="grid2">
+                <div class="fld-box"><label class="fld">اسم العرض</label><input id="vidName" placeholder="مثال: الحلقة 1"></div>
+                <div class="fld-box"><label class="fld">رابط MP4/MKV مباشر</label><input id="vidUrl" placeholder="https://.../video.mp4" style="direction:ltr"></div>
+            </div>
+            <div class="grid2">
+                <div class="fld-box"><label class="fld">طريقة التخزين</label>
+                    <select id="vidStorage">
+                        <option value="download">تنزيل إلى المحطة (سريع وموثوق — يستهلك القرص حتى 1500MB)</option>
+                        <option value="remote">عن بُعد: بث من الرابط مباشرة (بلا حد للقرص — يعتمد على سرعة المصدر ودعمه Range)</option>
+                    </select></div>
+                <div></div>
+            </div>
+            <button class="btn primary" id="addVidBtn">إضافة إلى المكتبة</button>
+            <p class="hint">
+                الصيغ المدعومة: <b>MP4/MOV/M4V</b> بفيديو H.264 وصوت AAC (الأفضل)، و<b>MKV</b> بفيديو H.264 (تنزيل فقط).
+                ملفات H.265/HEVC وروابط magnet <b>غير مدعومة</b> — لا توجد أداة تحويل في المحطة.
+                وضع «تنزيل» يخزن الملف على المحطة ثم يفحصه تلقائياً، ووضع «عن بُعد» يفحص الرابط فوراً بطلبات
+                صغيرة ثم يبثه من المصدر مباشرة دون شغل القرص — مثالي لخطة 2GB.
+                <span id="usageLine"></span>
+            </p>
+        </div>
+        <div id="libraryList"></div>
+    </section>
+
+    <!-- ===== النسخ الاحتياطي ===== -->
+    <section id="tab-backup" class="hidden">
+        <div class="panel">
+            <h2>تصدير الإعدادات</h2>
+            <p class="hint" style="margin-bottom:10px">
+                <b style="color:var(--warn)">مهم:</b> تخزين Koyeb مؤقت ويُمسح مع كل نشر جديد (القنوات والفيديوهات المنزّلة).
+                للاحتفاظ بها: انسخ البيانات أدناه وضعها في متغير البيئة <b>SEED_JSON</b> في إعدادات خدمة Koyeb —
+                تعود القنوات تلقائياً عند كل إقلاع وتُعاد تنزيل الفيديوهات من روابطها.
+            </p>
+            <textarea id="exportBox" readonly></textarea>
+            <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap">
+                <button class="btn" id="copyExportBtn">نسخ</button>
+                <button class="btn" id="dlExportBtn">تنزيل ملف json</button>
+                <button class="btn" id="refreshExportBtn">تحديث</button>
+            </div>
+        </div>
+        <div class="panel">
+            <h2>استيراد إعدادات</h2>
+            <p class="hint" style="margin-bottom:10px">الصق بيانات مُصدَّرة سابقاً (سيتم استبدال القنوات والمكتبة الحالية بالكامل).</p>
+            <textarea id="importBox" placeholder='{"version":1,"videos":[...],"channels":[...]}'></textarea>
+            <div style="margin-top:10px"><button class="btn danger" id="importBtn">استيراد (استبدال كامل)</button></div>
+        </div>
+    </section>
+
+    <!-- ===== الاستوديو ===== -->
+    <section id="tab-studio" class="hidden">
+    <div class="panel">
+        <h2>🔥 الحرق داخل الفيديو من المتصفح — بضغطة زر (موصى به)</h2>
+        <p class="hint">
+            يحرق المتصفح <b>الشعار والشريط النصي وطبقات النص</b> داخل نسخة من الفيديو نفسها عبر ffmpeg
+            يعمل داخل هذه الصفحة (WebAssembly) — <b>بلا تثبيت، بلا سكربتات، بلا GitHub</b> — ثم تُضاف
+            النسخة المحروقة إلى المكتبة وتحلّ محل الأصل في قوائم القنوات، فيصبح <b>البث الخارج نفسه
+            محروقاً</b> في VLC وأجهزة IPTV والتضمين وعلى كل المشغلات. الحروف العربية تُرسم من المتصفح
+            فتظهر مشكّلة وسليمة دائماً.
+        </p>
+        <div class="grid2">
+            <div>
+                <div class="fld-box"><label class="fld">الفيديو المطلوب حرق الهوية عليه</label>
+                    <select id="burnInVid"></select></div>
+                <label class="chk"><input type="checkbox" id="burnInReplace" checked>
+                    استبدال الأصل في قوائم القنوات تلقائياً (القناة تبدأ ببث النسخة المحروقة)</label>
+                <label class="chk"><input type="checkbox" id="burnInDel">
+                    حذف النسخة الأصلية بعد نجاح الحرق (توفير مساحة القرص)</label>
+                <label class="chk"><input type="checkbox" id="burnInNow">
+                    تضمين «يُبث الآن: اسم الفيديو» في الشريط النصي</label>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+                    <button class="btn primary" id="burnInStart">🔥 ابدأ الحرق وأضف النسخة إلى المكتبة</button>
+                    <button class="btn danger" id="burnInStop">إيقاف</button>
+                </div>
+                <div id="burnInMsg" class="hint"></div>
+            </div>
+            <div>
+                <div class="burn-stage" id="burnStg1"><span class="lbl">1) تحميل الفيديو إلى المتصفح</span>
+                    <span class="progress"><i id="burnBar1"></i></span><span class="pct" id="burnPct1"></span></div>
+                <div class="burn-stage" id="burnStg2"><span class="lbl">2) تجهيز محرك ffmpeg</span>
+                    <span class="progress"><i id="burnBar2"></i></span><span class="pct" id="burnPct2"></span></div>
+                <div class="burn-stage" id="burnStg3"><span class="lbl">3) الحرق (الترميز داخل المتصفح)</span>
+                    <span class="progress"><i id="burnBar3"></i></span><span class="pct" id="burnPct3"></span></div>
+                <div class="burn-stage" id="burnStg4"><span class="lbl">4) رفع النسخة المحروقة للمكتبة</span>
+                    <span class="progress"><i id="burnBar4"></i></span><span class="pct" id="burnPct4"></span></div>
+            </div>
+        </div>
+        <p class="hint">
+            ⚠️ استخدم <b>حاسوباً</b> وليس هاتفاً (الذاكرة والمعالج)، وأبقِ التبويب مفتوحاً حتى نهاية الحرق.
+            الحرق يعيد ترميز الفيديو — خذ وقتاً تقريبياً <b>1-3 دقائق لكل دقيقة فيديو</b>؛ الأفضل للفيديوهات
+            حتى <b>250MB</b> (الحد الأقصى 700MB). الجودة H.264 CRF 23 والصوت AAC. تُنزَّل حزمة المحرك مرة
+            واحدة (~31MB). الفيديوهات «عن بُعد» تُمرَّر عبر محطتك أولاً فيستهلك نقل بيانات إضافياً.
+        </p>
+    </div>
+
+        <div class="panel">
+            <h2>الاستوديو — الشعار والشريط النصي</h2>
+            <p class="hint">
+                تظهر الإضافات فوق الفيديو في مشغل الموقع على جميع الصفحات (الرئيسية، مشاهدة، التضمين)،
+                وتُحدَّث تلقائياً خلال دقيقة أو بتحديث الصفحة.
+                لحرق هذه العناصر داخل البث الخام نفسه (VLC وأجهزة IPTV) استخدم لوحة «الحرق داخل الفيديو من المتصفح» في أعلى هذا التبويب — بضغطة زر واحدة.
+            </p>
+            <div class="grid2">
+                <div>
+                    <h3 style="font-size:15px;margin-bottom:6px">🖼️ الشعار</h3>
+                    <label class="chk"><input type="checkbox" id="logoEnabled"> تفعيل الشعار</label>
+                    <div class="fld-box"><label class="fld">صورة الشعار (PNG شفاف مستحسن — حتى 2MB)</label>
+                        <input type="file" id="logoFile" accept="image/png,image/jpeg,image/webp"></div>
+                    <div class="fld-box"><label class="fld">الموضع</label>
+                        <select id="logoPos">
+                            <option value="top-left">أعلى اليسار</option>
+                            <option value="top-right">أعلى اليمين</option>
+                            <option value="bottom-left">أسفل اليسار</option>
+                            <option value="bottom-right">أسفل اليمين</option>
+                        </select></div>
+                    <div class="fld-box"><label class="fld">الحجم: <span id="logoSizeV">14%</span></label>
+                        <input type="range" id="logoSize" min="5" max="40" step="1"></div>
+                    <div class="fld-box"><label class="fld">الشفافية: <span id="logoOpV">90%</span></label>
+                        <input type="range" id="logoOp" min="5" max="100" step="5"></div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap">
+                        <button class="btn" id="logoUpBtn">رفع الشعار</button>
+                        <button class="btn danger" id="logoDelBtn">حذف الشعار</button>
+                    </div>
+                </div>
+                <div>
+                    <h3 style="font-size:15px;margin-bottom:6px">📰 الشريط النصي السفلي</h3>
+                    <label class="chk"><input type="checkbox" id="tickEnabled"> تفعيل الشريط</label>
+                    <div class="fld-box"><label class="fld">النص المتحرك</label>
+                        <input id="tickText" placeholder="أهلاً بكم في قناتي…"></div>
+                    <div class="grid2">
+                        <div class="fld-box"><label class="fld">لون النص</label>
+                            <input type="color" id="tickColor" value="#ffffff" style="height:42px;padding:4px"></div>
+                        <div class="fld-box"><label class="fld">لون الخلفية</label>
+                            <input type="color" id="tickBg" value="#c0392b" style="height:42px;padding:4px"></div>
+                    </div>
+                    <div class="fld-box"><label class="fld">السرعة: <span id="tickSpeedV">70</span></label>
+                        <input type="range" id="tickSpeed" min="20" max="250" step="5"></div>
+                    <label class="chk"><input type="checkbox" id="tickNow"> إظهار «يُبث الآن» تلقائياً</label>
+                </div>
+            </div>
+            <div style="margin-top:14px">
+                <h3 style="font-size:15px;margin-bottom:6px">🎛️ طبقات النص الحرة (بأسلوب OBS)</h3>
+                <p class="hint">أضف نصوصاً في أي مكان على الشاشة، ثم <b>اسحبها داخل المعاينة المباشرة بالفأرة</b>
+                    لتحديد الموضع بدقة (x,y بالبالمئة). تصل للمشاهدين خلال دقيقة، وتدخل في أمر الحرق أيضاً.
+                    الحد الأقصى 8 طبقات.</p>
+                <div id="txtLayers"></div>
+                <button class="btn" id="addTxtBtn">➕ إضافة طبقة نص</button>
+            </div>
+            <button class="btn primary" id="saveBrandingBtn">حفظ الإعدادات</button>
+        </div>
+        <div class="panel">
+            <h2>معاينة مباشرة — اسحب العناصر لتحريكها 🖱️</h2>
+            <div class="studio-preview" id="studioPrev">
+                <img id="prevLogo" class="tvs-logo pv-drag" alt="" draggable="false">
+                <div id="prevNow" class="tvs-now"></div>
+                <div id="prevTick" class="tvs-ticker"><span id="prevTickTxt"></span></div>
+            </div>
+            <p class="hint">المعاينة تفاعلية: اسحب الشعار وطبقات النص لتحديد موضعها بحرية — نفس المواضع تُطبَّق على المشاهدين وفي أمر الحرق. الشريط السفلي يبقى شريطاً متحركاً بعرض كامل.</p>
+        </div>
+        <div class="panel">
+            <h2>🔥 الظهور في البث الخام (VLC وأجهزة IPTV) — الحرق على المصدر</h2>
+            <p class="hint">
+                الخادم لا يستطيع حرق الشعار داخل البث (Koyeb المجاني بلا ffmpeg ومعالج 0.1 vCPU لا يكفي للترميز).
+                الحل المضمون: احرق اللوغو والشريط في ملفات MP4 على حاسوبك قبل إضافتها للمكتبة —
+                حينها تظهر <b>داخل البث نفسه</b> في كل مشغل: VLC، تطبيقات IPTV، الموقع، والتضمين.
+                الأمر التالي يُولَّد تلقائياً من إعداداتك أعلاه (احفظ الإعدادات أولاً ثم انسخه).
+            </p>
+            <div class="grid2">
+                <div>
+                    <div class="fld-box"><label class="fld">نظام حاسوبك (يحدد مسار الخط في الأمر)</label>
+                        <select id="burnOs">
+                            <option value="win">ويندوز</option>
+                            <option value="linux">لينكس</option>
+                            <option value="mac">ماك</option>
+                        </select></div>
+                    <ol style="margin:8px 18px 8px 0;padding:0;font-size:13px;line-height:2">
+                        <li>ثبّت ffmpeg من <b>ffmpeg.org</b> (أو استخدم CapCut بالأسفل — أسهل).</li>
+                        <li>حمّل شعارك: <code id="burnLogoUrl">/logo.png</code> (افتحه واحفظه باسم logo.png).</li>
+                        <li>احفظ نص الشريط في ملف <b>ticker.txt</b>، وكل طبقة نص في ملفها
+                            <b>layer1.txt، layer2.txt…</b> بجانب الفيديو
+                            <button class="btn" id="copyTickTxtBtn" style="padding:2px 10px;font-size:12px">نسخ النص</button>
+                            (زر 📋 في كل طبقة ينسخ نصها)</li>
+                        <li>ضع الفيديو الأصلي باسم <b>input.mp4</b> بجانبهما وشغّل الأمر.</li>
+                        <li>أضف الملف الناتج <b>output_burned.mp4</b> إلى المكتبة واحذف الأصلي.</li>
+                    </ol>
+                </div>
+                <div>
+                    <pre id="burnCmd" style="direction:ltr;text-align:left;background:#0b1520;color:#9fd6a0;border:1px solid #24344a;border-radius:8px;padding:10px;font-size:11.5px;white-space:pre-wrap;word-break:break-all;max-height:180px;overflow:auto">— فعّل اللوغو أو الشريط أعلاه ليُولَّد الأمر —</pre>
+                    <button class="btn primary" id="copyBurnBtn">📋 نسخ أمر الحرق</button>
+                    <p class="hint" style="margin-top:8px">
+                        ⚠️ إذا ظهرت الحروف العربية مقطعة في الناتج: أضف <code>:text_shaping=1</code> بعد
+                        <code>textfile=ticker.txt</code>، وإن رُفض الخيار فنسختك بلا دعم العربية — استخدم نسخة
+                        <b>gyan.dev full</b> لويندوز أو نفّذها عبر <b>CapCut</b>: افتح الفيديو ← أضف الشعار كطبقة
+                        والنص كترجمة سفلية ← صدّر MP4 ← ارفعه للمكتبة.
+                    </p>
+                    <p class="hint">
+                        📡 <b>القنوات الخارجية (Restream)</b> تُعاد بثّها كما هي ولا يمكن تعديلها من طرفنا —
+                        شعارها موجود عند المصدر الأصلي.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="panel">
+            <h2>🎬 وضع OBS Studio — تركيب البث لحظياً بـ ffmpeg (سكربت mini-obs)</h2>
+            <p class="hint">
+                OBS يعمل هكذا: مدخلات (قائمة فيديوهات + شعار + شريط نصي) تُركَّب معاً لحظياً وتُخرَج للبث والتسجيل.
+                السكربت التالي — مولَّد من إعدادات استوديوك — يفعل الشيء نفسه بأمر ffmpeg واحد يعمل 24/7 على حاسوبك
+                (الخادم لا يشغّل ffmpeg): يوحّد كل الفيديوهات على لوحة 1280×720 واحدة، يركّب الشعار والشريط،
+                <b>يسجّل MP4 جاهزاً للرفع</b> ويبث <b>معاينة HLS تفتحها في VLC فوراً</b>.
+            </p>
+            <div class="grid2">
+                <div>
+                    <div class="fld-box"><label class="fld">نظام التشغيل</label>
+                        <select id="obsOs">
+                            <option value="win">ويندوز — mini-obs.bat</option>
+                            <option value="linux">لينكس — mini-obs.sh</option>
+                            <option value="mac">ماك — mini-obs.sh</option>
+                        </select></div>
+                    <div class="fld-box"><label class="fld">المخرجات</label>
+                        <select id="obsMode">
+                            <option value="push">بث حي إلى قناتك — الحرق داخل البث (موصى به)</option>
+                            <option value="both">بث حي + تسجيل MP4 معاً</option>
+                            <option value="rec">تسجيل MP4 فقط (رفع يدوي للمكتبة)</option>
+                        </select></div>
+                    <div class="fld-box"><label class="fld">اسم القناة الحية (أحرف لاتينية)</label>
+                        <input id="obsChan" type="text" value="main" style="direction:ltr"></div>
+                    <div class="fld-box"><label class="fld">رابط قناتك الحية — ضعه في قناة «بث خارجي (HLS)»</label>
+                        <code id="obsLiveUrl" style="direction:ltr;display:block;background:#0b1520;color:#9fd6a0;border:1px solid #24344a;border-radius:6px;padding:6px 8px;font-size:12px;word-break:break-all">—</code></div>
+                    <ol style="margin:8px 18px 8px 0;padding:0;font-size:13px;line-height:2">
+                        <li>ثبّت ffmpeg (نسخة <b>gyan.dev full</b> لويندوز) — نفس متطلبات الحرق أعلاه.</li>
+                        <li>احفظ السكربت في مجلد جديد باسم <b>mini-obs.bat</b> (ويندوز) أو <b>mini-obs.sh</b> (لينكس/ماك).</li>
+                        <li>ضع فيديوهاتك داخل مجلد فرعي باسم <b>videos</b> (يُنشأ تلقائياً).</li>
+                        <li>لوضع «بث حي»: أنشئ ملف <b>push.key</b> بجانب السكربت واكتب فيه كلمة مرور اللوحة فقط (سطر واحد).</li>
+                        <li>أنشئ قناة <b>«بث خارجي (HLS)»</b> في تبويب القنوات وضع فيها رابط قناتك الحية الظاهر أعلاه — الرابط ثابت.</li>
+                        <li>شغّل السكربت: نقرة مزدوجة في ويندوز أو <code>sh mini-obs.sh</code> — خلال ~20 ثانية يظهر بثك <b>المحروق</b> في القناة وVLC وأجهزة IPTV.</li>
+                    </ol>
+                </div>
+                <div>
+                    <pre id="obsCmd" style="direction:ltr;text-align:left;background:#0b1520;color:#9fd6a0;border:1px solid #24344a;border-radius:8px;padding:10px;font-size:11.5px;white-space:pre-wrap;word-break:break-all;max-height:300px;overflow:auto">—</pre>
+                    <button class="btn primary" id="copyObsBtn">📋 نسخ سكربت mini-obs</button>
+                    <p class="hint" style="margin-top:8px">
+                        🖊️ <b>عدّل ticker.txt أثناء التشغيل</b> — يظهر التغيير في البث خلال ثوانٍ (مثل تعديل المشهد في OBS).
+                        ⏱️ تأخير 10-20 ثانية طبيعي في HLS. 📶 «البث الحي» يرفع من حاسوبك باستمرار (~2-4 ميجابت حسب الجودة).
+                        🎬 المعاينة المحلية: افتح <b>push/live.m3u8</b> في VLC. وضع «تسجيل فقط»: الملفات في <b>recorded/</b> لرفعها للمكتبة.
+                        ⚠️ حروف عربية مقطعة؟ gyan.dev full أو <code>:text_shaping=1</code>.
+                        📐 الأبعاد المختلفة تُوسَّط تلقائياً على لوحة موحّدة. 🎵 اجعل الفيديوهات كلها بصوت أو كلها بلا صوت.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
+<script>
+(function () {
+"use strict";
+
+// ================= أدوات عامة =================
+var $ = function (id) { return document.getElementById(id); };
+var state = { authed: false, authEnabled: true, videos: [], channels: [], pollTimer: null, editOpen: null };
+var draftSel = []; // قائمة التشغيل قيد الإنشاء
+
+function toast(msg, isErr) {
+    var t = $("toast");
+    t.textContent = msg;
+    t.classList.toggle("err", !!isErr);
+    t.classList.add("show");
+    setTimeout(function () { t.classList.remove("show"); }, isErr ? 2600 : 1500);
+}
+function fmtDur(ms) {
+    if (!ms) return "—";
+    var s = Math.round(ms / 1000), m = Math.floor(s / 60);
+    s = s % 60;
+    return m + ":" + (s < 10 ? "0" : "") + s;
+}
+function fmtMB(b) { return b ? (b / 1e6).toFixed(1) + "MB" : "—"; }
+function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+}
+function copyText(text) {
+    navigator.clipboard.writeText(text).then(function () { toast("تم النسخ ✓"); });
+}
+
+function api(path, opts) {
+    opts = opts || {};
+    opts.headers = Object.assign({ "Content-Type": "application/json" }, opts.headers || {});
+    return fetch(path, opts).then(function (res) {
+        return res.json().catch(function () { return null; }).then(function (data) {
+            if (res.status === 401) {
+                showLogin();
+                throw new Error((data && data.error) || "غير مصرح");
+            }
+            if (!res.ok || (data && data.ok === false)) {
+                throw new Error((data && data.error) || ("خطأ " + res.status));
+            }
+            return data;
+        });
+    });
+}
+
+// ================= الدخول =================
+function showLogin() {
+    $("loginView").classList.remove("hidden");
+    $("appView").classList.add("hidden");
+}
+function showApp() {
+    $("loginView").classList.add("hidden");
+    $("appView").classList.remove("hidden");
+    loadAll();
+}
+$("loginBtn").onclick = function () {
+    $("loginErr").textContent = "";
+    api("/api/login", { method: "POST", body: JSON.stringify({ password: $("pwd").value }) })
+        .then(function () { $("pwd").value = ""; showApp(); })
+        .catch(function (e) { $("loginErr").textContent = e.message; });
+};
+$("pwd").addEventListener("keydown", function (e) { if (e.key === "Enter") $("loginBtn").click(); });
+$("logoutBtn").onclick = function () {
+    api("/api/logout", { method: "POST" }).then(showLogin).catch(function () {});
+};
+
+// ================= التبويبات =================
+Array.prototype.forEach.call(document.querySelectorAll(".tabs button"), function (b) {
+    b.onclick = function () {
+        Array.prototype.forEach.call(document.querySelectorAll(".tabs button"), function (x) { x.classList.remove("active"); });
+        b.classList.add("active");
+        ["channels", "library", "studio", "backup"].forEach(function (t) {
+            $("tab-" + t).classList.toggle("hidden", t !== b.dataset.tab);
+        });
+        if (b.dataset.tab === "backup") refreshExport();
+        else if (b.dataset.tab === "studio") loadBranding();
+    };
+});
+
+// ================= تحميل البيانات =================
+function loadAll() {
+    return Promise.all([
+        api("/api/channels"),
+        api("/api/library")
+    ]).then(function (rs) {
+        state.channels = rs[0].channels || [];
+        $("brandName").textContent = rs[0].app_name || "لوحة التحكم";
+        state.videos = rs[1].videos || [];
+        renderUsage(rs[1]);
+        renderChannels();
+        renderLibrary();
+        renderDraftEditor();
+        refreshBurnInVids();
+        schedulePoll();
+    }).catch(function (e) {
+        if (state.authed) toast(e.message, true);
+    });
+}
+function schedulePoll() {
+    if (state.pollTimer) clearTimeout(state.pollTimer);
+    var busy = state.videos.some(function (v) { return v.status === "downloading" || v.status === "queued"; });
+    if (busy) state.pollTimer = setTimeout(function () {
+        api("/api/library").then(function (r) {
+            state.videos = r.videos || [];
+            renderUsage(r);
+            renderLibrary();
+            renderChannels();
+            schedulePoll();
+        }).catch(function () {});
+    }, 2500);
+}
+function renderUsage(r) {
+    var used = (r.usage_bytes / 1e6).toFixed(0), lim = (r.limit_bytes / 1e6).toFixed(0);
+    $("usageLine").textContent = " — استهلاك المكتبة: " + used + "MB من " + lim + "MB";
+}
+
+// ================= محرر قائمة التشغيل =================
+function renderDraftEditor() {
+    var avail = $("plAvailable"), sel = $("plSelected");
+    avail.textContent = ""; sel.textContent = "";
+    avail.appendChild(el("h4", null, "فيديوهات المكتبة (اضغط للإضافة)"));
+    sel.appendChild(el("h4", null, "قائمة التشغيل (بالترتيب)"));
+    var ready = state.videos.filter(function (v) { return v.status === "ready"; });
+    if (!ready.length) avail.appendChild(el("div", "pl-empty", "لا توجد فيديوهات جاهزة — أضفها أولاً من تبويب «مكتبة الفيديو»"));
+    ready.forEach(function (v) {
+        if (draftSel.indexOf(v.id) >= 0) return;
+        var it = el("div", "pl-item");
+        it.appendChild(el("span", "t", v.name));
+        it.appendChild(el("span", "d", fmtDur(v.duration_ms)));
+        it.onclick = function () { draftSel.push(v.id); renderDraftEditor(); };
+        avail.appendChild(it);
+    });
+    if (!draftSel.length) sel.appendChild(el("div", "pl-empty", "القائمة فارغة — أضف فيديوهات من اليمين"));
+    draftSel.forEach(function (vid, i) {
+        var v = state.videos.filter(function (x) { return x.id === vid; })[0];
+        if (!v) return;
+        var it = el("div", "pl-item");
+        it.appendChild(el("span", "t", (i + 1) + ". " + v.name));
+        it.appendChild(el("span", "d", fmtDur(v.duration_ms)));
+        var up = el("button", "mini", "▲"); up.onclick = function (e) {
+            e.stopPropagation();
+            if (i > 0) { draftSel.splice(i - 1, 0, draftSel.splice(i, 1)[0]); renderDraftEditor(); }
+        };
+        var rm = el("button", "mini", "✕"); rm.onclick = function (e) {
+            e.stopPropagation();
+            draftSel.splice(i, 1); renderDraftEditor();
+        };
+        it.appendChild(up); it.appendChild(rm);
+        sel.appendChild(it);
+    });
+}
+$("chType").onchange = function () {
+    var vod = $("chType").value === "vod";
+    $("vodFields").classList.toggle("hidden", !vod);
+    $("restreamFields").classList.toggle("hidden", vod);
+};
+$("createChBtn").onclick = function () {
+    var payload = {
+        name: $("chName").value, type: $("chType").value,
+        id: $("chId").value.trim() || undefined
+    };
+    if (payload.type === "vod") {
+        payload.playlist = draftSel.slice();
+    } else {
+        payload.source_url = $("chUrl").value;
+        payload.source_type = $("chSourceType").value;
+    }
+    api("/api/channels", { method: "POST", body: JSON.stringify(payload) })
+        .then(function () {
+            draftSel = [];
+            $("chName").value = ""; $("chId").value = ""; $("chUrl").value = "";
+            toast("تم إنشاء القناة ✓"); loadAll();
+        })
+        .catch(function (e) { toast(e.message, true); });
+};
+
+// ================= عرض القنوات =================
+function pubRows(ch) {
+    var origin = location.origin;
+    var rows = [
+        { lbl: "رابط HLS (m3u8):", code: origin + ch.url },
+        { lbl: "صفحة المشغل:", code: origin + "/watch/" + ch.id },
+        { lbl: "كود التضمين:", code: '<iframe src="' + origin + "/embed/" + ch.id + '" width="640" height="360" frameborder="0" allowfullscreen></iframe>' }
+    ];
+    return rows;
+}
+function renderChannels() {
+    var box = $("channelsList");
+    box.textContent = "";
+    if (!state.channels.length) {
+        var p = el("div", "panel");
+        p.appendChild(el("p", "hint", "لا توجد قنوات بعد — أنشئ أول قناة من النموذج أعلاه."));
+        box.appendChild(p);
+        return;
+    }
+    state.channels.forEach(function (ch) {
+        var card = el("div", "ch-card");
+        var head = el("div", "ch-head");
+        head.appendChild(el("span", "name", ch.name));
+        head.appendChild(el("span", "chip " + (ch.type === "vod" ? "vod" : "live"),
+            ch.type === "vod" ? "قناة مكتبة 24/7" : "بث خارجي"));
+        head.appendChild(el("span", "chip id", ch.id));
+        card.appendChild(head);
+
+        if (ch.type === "vod") {
+            var nl = el("div", "now-line");
+            if (ch.now) {
+                nl.appendChild(el("div", null, "")).appendChild(el("b", null, "يُبث الآن: " + ch.now.title));
+                var sub = el("div", "sub", "الموضع " + fmtDur(ch.now.position_ms) + " / " +
+                    fmtDur(ch.now.duration_ms) + " — التالي: " + ch.now.next);
+                nl.appendChild(sub);
+                var pr = el("div", "progress");
+                var bar = el("i");
+                bar.style.width = Math.min(100, 100 * ch.now.position_ms / Math.max(1, ch.now.duration_ms)) + "%";
+                pr.appendChild(bar);
+                nl.appendChild(pr);
+            } else {
+                nl.appendChild(el("div", null, "لا يوجد بث — أضف فيديوهات جاهزة إلى قائمة القناة"));
+            }
+            card.appendChild(nl);
+        }
+
+        var grid = el("div", "pub-grid");
+        pubRows(ch).forEach(function (r) {
+            var row = el("div", "pub-row");
+            row.appendChild(el("span", "lbl", r.lbl));
+            var c = el("code", null, r.code);
+            row.appendChild(c);
+            var b = el("button", "btn small", "نسخ");
+            b.onclick = function () { copyText(r.code); };
+            row.appendChild(b);
+            grid.appendChild(row);
+        });
+        card.appendChild(grid);
+
+        var actions = el("div", "ch-actions");
+        var watch = el("a", "btn small", "مشاهدة ↗");
+        watch.href = "/watch/" + ch.id; watch.target = "_blank";
+        actions.appendChild(watch);
+        if (ch.type === "vod") {
+            var edit = el("button", "btn small", state.editOpen === ch.id ? "إغلاق التعديل" : "تعديل القائمة");
+            edit.onclick = function () {
+                state.editOpen = (state.editOpen === ch.id) ? null : ch.id;
+                renderChannels();
+            };
+            actions.appendChild(edit);
+        }
+        var del = el("button", "btn small danger", "حذف القناة");
+        del.onclick = function () {
+            if (!confirm("حذف القناة «" + ch.name + "»؟")) return;
+            api("/api/channels/" + ch.id, { method: "DELETE" })
+                .then(function () { toast("حُذفت القناة"); loadAll(); })
+                .catch(function (e) { toast(e.message, true); });
+        };
+        actions.appendChild(del);
+        card.appendChild(actions);
+
+        if (state.editOpen === ch.id && ch.type === "vod") {
+            var ed = el("div", "panel");
+            ed.style.marginTop = "12px";
+            ed.appendChild(el("h2", null, "تعديل قائمة: " + ch.name));
+            var holder = el("div");
+            ed.appendChild(holder);
+            var editor = playlistEditor(holder, ch.playlist || []);
+            var save = el("button", "btn primary", "حفظ القائمة");
+            save.onclick = function () {
+                api("/api/channels/" + ch.id, { method: "PUT", body: JSON.stringify({ playlist: editor.get() }) })
+                    .then(function () {
+                        state.editOpen = null;
+                        toast("حُفظت القائمة ✓"); loadAll();
+                    })
+                    .catch(function (e) { toast(e.message, true); });
+            };
+            ed.appendChild(save);
+            card.appendChild(ed);
+        }
+        box.appendChild(card);
+    });
+}
+
+// محرر قائمة قابل لإعادة الاستخدام (يُستخدم في تعديل القناة)
+function playlistEditor(container, initial) {
+    var sel = initial.slice();
+    container.classList.add("pl-editor");
+    var avail = el("div", "pl-col"), selBox = el("div", "pl-col");
+    container.appendChild(avail); container.appendChild(selBox);
+
+    function render() {
+        avail.textContent = ""; selBox.textContent = "";
+        avail.appendChild(el("h4", null, "فيديوهات المكتبة"));
+        selBox.appendChild(el("h4", null, "قائمة التشغيل (بالترتيب)"));
+        var ready = state.videos.filter(function (v) { return v.status === "ready"; });
+        ready.forEach(function (v) {
+            if (sel.indexOf(v.id) >= 0) return;
+            var it = el("div", "pl-item");
+            it.appendChild(el("span", "t", v.name));
+            it.appendChild(el("span", "d", fmtDur(v.duration_ms)));
+            it.onclick = function () { sel.push(v.id); render(); };
+            avail.appendChild(it);
+        });
+        if (!sel.length) selBox.appendChild(el("div", "pl-empty", "فارغة"));
+        sel.forEach(function (vid, i) {
+            var v = state.videos.filter(function (x) { return x.id === vid; })[0];
+            if (!v) return;
+            var it = el("div", "pl-item");
+            it.appendChild(el("span", "t", (i + 1) + ". " + v.name));
+            var up = el("button", "mini", "▲"); up.onclick = function (e) {
+                e.stopPropagation();
+                if (i > 0) { sel.splice(i - 1, 0, sel.splice(i, 1)[0]); render(); }
+            };
+            var rm = el("button", "mini", "✕"); rm.onclick = function (e) {
+                e.stopPropagation(); sel.splice(i, 1); render();
+            };
+            it.appendChild(up); it.appendChild(rm);
+            selBox.appendChild(it);
+        });
+    }
+    render();
+    return { get: function () { return sel.slice(); } };
+}
+
+// ================= مكتبة الفيديو =================
+$("addVidBtn").onclick = function () {
+    api("/api/videos", { method: "POST", body: JSON.stringify({
+        name: $("vidName").value, url: $("vidUrl").value,
+        storage: $("vidStorage").value
+    }) })
+        .then(function (r) {
+            $("vidName").value = ""; $("vidUrl").value = "";
+            toast(r.video && r.video.storage === "remote" ? "أُضيف عن بُعد وجاهز للبث ✓"
+                  : "أُضيف — جارٍ التنزيل…");
+            loadAll();
+            switchTab("library");
+        })
+        .catch(function (e) { toast(e.message, true); });
+};
+function switchTab(t) {
+    Array.prototype.forEach.call(document.querySelectorAll(".tabs button"), function (x) {
+        x.classList.toggle("active", x.dataset.tab === t);
+    });
+    ["channels", "library", "studio", "backup"].forEach(function (k) {
+        $("tab-" + k).classList.toggle("hidden", k !== t);
+    });
+}
+function renderLibrary() {
+    var box = $("libraryList");
+    box.textContent = "";
+    if (!state.videos.length) {
+        var p = el("div", "panel");
+        p.appendChild(el("p", "hint", "المكتبة فارغة — أضف أول فيديو بالرابط المباشر من الأعلى."));
+        box.appendChild(p);
+        return;
+    }
+    state.videos.forEach(function (v) {
+        var card = el("div", "vid-card");
+        var head = el("div", "vid-head");
+        head.appendChild(el("span", "name", v.name));
+        var badge;
+        if (v.storage === "remote") {
+            badge = el("span", "badge busy", "عن بُعد");
+            badge.title = "يبث من المصدر مباشرة — لا يستهلك قرص المحطة";
+        } else if (v.status === "ready") badge = el("span", "badge ready", "جاهز");
+        else if (v.status === "downloading" || v.status === "queued") {
+            var pct = "";
+            if (v.status === "downloading" && v.size_bytes && v.done_bytes) {
+                pct = " " + Math.min(99, Math.round(100 * v.done_bytes / v.size_bytes)) + "%";
+            }
+            badge = el("span", "badge busy", v.status === "queued" ? "في الطابور" : "جارٍ التنزيل" + pct);
+        } else badge = el("span", "badge error", "خطأ");
+        head.appendChild(badge);
+        var del = el("button", "btn small danger", "حذف");
+        del.onclick = function () {
+            if (!confirm("حذف «" + v.name + "» من المكتبة وإزالته من كل القوائم؟")) return;
+            api("/api/videos/" + v.id, { method: "DELETE" })
+                .then(function () { toast("حُذف"); loadAll(); })
+                .catch(function (e) { toast(e.message, true); });
+        };
+        head.appendChild(del);
+        card.appendChild(head);
+
+        if (v.status === "downloading" && v.size_bytes) {
+            var pr = el("div", "progress");
+            var bar = el("i");
+            bar.style.width = Math.min(100, 100 * (v.done_bytes || 0) / v.size_bytes) + "%";
+            pr.appendChild(bar);
+            card.appendChild(pr);
+        }
+        if (v.error) card.appendChild(el("div", "err-text", v.error));
+
+        var meta = el("div", "meta");
+        meta.appendChild(el("span", null, "المدة: " + fmtDur(v.duration_ms)));
+        if (v.storage === "remote") meta.appendChild(el("span", null, "التخزين: عن بُعد (0MB قرص)"));
+        else meta.appendChild(el("span", null, "الحجم: " + fmtMB(v.size_bytes)));
+        if (v.video) meta.appendChild(el("span", null, "فيديو: " + (v.video === "avc1" ? "H.264 ✓" : v.video)));
+        if (v.audio) meta.appendChild(el("span", null, "صوت: " + v.audio.toUpperCase()));
+        if (v.source === "embedded") meta.appendChild(el("span", null, "مدمج في الصورة"));
+        card.appendChild(meta);
+
+        if (v.url) card.appendChild(el("div", "url-line", v.url));
+
+        if (v.status === "error" && v.url) {
+            var retry = el("button", "btn small", "إعادة المحاولة");
+            retry.style.marginTop = "8px";
+            retry.onclick = function () {
+                api("/api/videos/" + v.id + "/retry", { method: "POST" })
+                    .then(function () { toast("أُعيد إلى الطابور"); loadAll(); })
+                    .catch(function (e) { toast(e.message, true); });
+            };
+            card.appendChild(retry);
+        }
+        box.appendChild(card);
+    });
+}
+
+// ================= النسخ الاحتياطي =================
+function refreshExport() {
+    api("/api/export").then(function (r) {
+        $("exportBox").value = JSON.stringify(r.data, null, 2);
+    }).catch(function (e) { toast(e.message, true); });
+}
+$("refreshExportBtn").onclick = refreshExport;
+$("copyExportBtn").onclick = function () { copyText($("exportBox").value); };
+$("dlExportBtn").onclick = function () {
+    var blob = new Blob([$("exportBox").value], { type: "application/json" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "koyeb-tv-backup.json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+};
+$("importBtn").onclick = function () {
+    var txt = $("importBox").value.trim();
+    if (!txt) { toast("الصق البيانات أولاً", true); return; }
+    if (!confirm("سيتم استبدال كل القنوات والمكتبة الحالية — متابعة؟")) return;
+    var parsed;
+    try { parsed = JSON.parse(txt); } catch (e) { toast("JSON غير صالح", true); return; }
+    api("/api/import", { method: "POST", body: JSON.stringify({ data: parsed }) })
+        .then(function (r) {
+            toast("تم الاستيراد: " + r.imported.videos + " فيديو، " + r.imported.channels + " قناة ✓");
+            $("importBox").value = "";
+            loadAll();
+        })
+        .catch(function (e) { toast(e.message, true); });
+};
+
+// ================= الاستوديو =================
+var prevLogoCur = null; // رابط الشعار الحالي (للمعاينة)
+var curTexts = [];              // طبقات النص الحرة (بأسلوب OBS)
+var logoXY = { x: 0, y: 0 };    // موضع الشعار الحر — 0 يعني «استخدم الزاوية»
+
+function brandingPayload() {
+    return {
+        logo: {
+            enabled: $("logoEnabled").checked,
+            position: $("logoPos").value,
+            width_pct: parseInt($("logoSize").value, 10) || 14,
+            opacity: (parseInt($("logoOp").value, 10) || 90) / 100,
+            x: logoXY.x,
+            y: logoXY.y
+        },
+        ticker: {
+            enabled: $("tickEnabled").checked,
+            text: $("tickText").value,
+            color: $("tickColor").value,
+            bg: $("tickBg").value,
+            speed: parseInt($("tickSpeed").value, 10) || 70,
+            now_playing: $("tickNow").checked
+        },
+        texts: curTexts
+    };
+}
+
+var PREV_CORNERS = {
+    "top-left":     { top: "4%", left: "4%" },
+    "top-right":    { top: "4%", right: "4%" },
+    "bottom-left":  { bottom: "12%", left: "4%" },
+    "bottom-right": { bottom: "12%", right: "4%" }
+};
+
+function renderPreview() {
+    var p = brandingPayload();
+    var pl = $("prevLogo");
+    if (p.logo.enabled && prevLogoCur) {
+        pl.style.display = "block";
+        pl.src = prevLogoCur;
+        if (logoXY.x > 0 || logoXY.y > 0) {
+            pl.style.left = logoXY.x + "%";
+            pl.style.top = logoXY.y + "%";
+            pl.style.right = "auto";
+            pl.style.bottom = "auto";
+        } else {
+            var c = PREV_CORNERS[p.logo.position] || PREV_CORNERS["top-left"];
+            pl.style.top = c.top || "auto";
+            pl.style.left = c.left || "auto";
+            pl.style.right = c.right || "auto";
+            pl.style.bottom = c.bottom || "auto";
+        }
+        pl.style.width = p.logo.width_pct + "%";
+        pl.style.opacity = p.logo.opacity;
+    } else {
+        pl.style.display = "none";
+    }
+    var pn = $("prevNow");
+    if (p.ticker.now_playing) {
+        pn.style.display = "block";
+        pn.style.bottom = p.ticker.enabled ? "12%" : "5%";
+        pn.textContent = "";
+        var b = document.createElement("b");
+        b.textContent = "يُبث الآن: ";
+        pn.appendChild(b);
+        pn.appendChild(document.createTextNode("اسم الفيديو الحالي"));
+    } else {
+        pn.style.display = "none";
+    }
+    var pt = $("prevTick");
+    if (p.ticker.enabled && p.ticker.text) {
+        pt.style.display = "flex";
+        pt.style.background = p.ticker.bg;
+        pt.style.color = p.ticker.color;
+        $("prevTickTxt").textContent = p.ticker.text;
+    } else {
+        pt.style.display = "none";
+    }
+    syncPrevTexts();
+}
+
+function loadBranding() {
+    api("/api/branding").then(function (r) {
+        var s = r.branding || {}, lg = s.logo || {}, tk = s.ticker || {};
+        $("logoEnabled").checked = !!lg.enabled;
+        $("logoPos").value = lg.position || "top-left";
+        $("logoSize").value = lg.width_pct || 14;
+        $("logoOp").value = Math.round((lg.opacity || 0.9) * 100);
+        $("logoSizeV").textContent = $("logoSize").value + "%";
+        $("logoOpV").textContent = $("logoOp").value + "%";
+        $("tickEnabled").checked = !!tk.enabled;
+        $("tickText").value = tk.text || "";
+        $("tickColor").value = tk.color || "#ffffff";
+        $("tickBg").value = tk.bg || "#c0392b";
+        $("tickSpeed").value = tk.speed || 70;
+        $("tickSpeedV").textContent = $("tickSpeed").value;
+        $("tickNow").checked = !!tk.now_playing;
+        curTexts = Array.isArray(s.texts) ? s.texts : [];
+        logoXY = { x: Number(lg.x) || 0, y: Number(lg.y) || 0 };
+        prevLogoCur = r.logo_url || null;
+        renderLayers();
+        renderPreview();
+        refreshBurnCmd();
+    }).catch(function (e) { toast(e.message, true); });
+}
+
+$("logoSize").oninput = function () { $("logoSizeV").textContent = this.value + "%"; renderPreview(); };
+$("logoOp").oninput = function () { $("logoOpV").textContent = this.value + "%"; renderPreview(); };
+$("tickSpeed").oninput = function () { $("tickSpeedV").textContent = this.value; };
+["logoEnabled", "logoPos", "tickEnabled", "tickText", "tickColor", "tickBg", "tickNow"]
+    .forEach(function (id) {
+        $(id).addEventListener("input", renderPreview);
+        $(id).addEventListener("change", renderPreview);
+    });
+
+$("logoUpBtn").onclick = function () {
+    var f = $("logoFile").files && $("logoFile").files[0];
+    if (!f) { toast("اختر صورة الشعار أولاً", true); return; }
+    if (f.size > 2 * 1024 * 1024) { toast("الصورة أكبر من 2MB — صغّرها وأعد المحاولة", true); return; }
+    var rd = new FileReader();
+    rd.onload = function () {
+        var b64 = String(rd.result).split(",")[1] || "";
+        api("/api/branding/logo", { method: "POST", body: JSON.stringify({ data: b64 }) })
+            .then(function (r) {
+                toast("رُفع الشعار وُفّع ✓");
+                prevLogoCur = r.logo_url || null;
+                $("logoEnabled").checked = true;
+                renderPreview();
+            })
+            .catch(function (e) { toast(e.message, true); });
+    };
+    rd.readAsDataURL(f);
+};
+
+$("logoDelBtn").onclick = function () {
+    api("/api/branding/logo", { method: "DELETE" })
+        .then(function () {
+            toast("حُذف الشعار");
+            prevLogoCur = null;
+            $("logoEnabled").checked = false;
+            renderPreview();
+        })
+        .catch(function (e) { toast(e.message, true); });
+};
+
+$("saveBrandingBtn").onclick = function () {
+    api("/api/branding", { method: "POST", body: JSON.stringify(brandingPayload()) })
+        .then(function () { toast("حُفظت إعدادات الاستوديو ✓ — تصل للمشاهد خلال ثوانٍ"); })
+        .catch(function (e) { toast(e.message, true); });
+};
+
+// ===== طبقات النص بأسلوب OBS + السحب بالفأرة في المعاينة =====
+function syncPrevTexts() {
+    var prev = $("studioPrev"), map = {}, i;
+    var olds = prev.querySelectorAll(".pv-txt");
+    for (i = 0; i < olds.length; i++) { map[olds[i].dataset.tid] = olds[i]; }
+    curTexts.forEach(function (t) {
+        if (!t.enabled || !t.text) { return; }
+        var el = map[t.id];
+        delete map[t.id];
+        if (!el) {
+            el = document.createElement("div");
+            el.className = "pv-txt pv-drag";
+            el.dataset.tid = t.id;
+            prev.appendChild(el);
+        }
+        el.textContent = t.text;
+        el.style.left = t.x + "%";
+        el.style.top = t.y + "%";
+        el.style.fontSize = Math.max(9, Math.round(prev.clientHeight * (t.size || 5) / 100)) + "px";
+        el.style.color = t.color || "#ffffff";
+        el.style.background = t.bg || "transparent";
+        el.style.display = "block";
+    });
+    for (var k in map) {
+        if (Object.prototype.hasOwnProperty.call(map, k)) { map[k].remove(); }
+    }
+}
+
+function renderLayers() {
+    var boxEl = $("txtLayers");
+    boxEl.innerHTML = "";
+    curTexts.forEach(function (t, i) {
+        var row = document.createElement("div");
+        row.className = "layer-row";
+        var main = document.createElement("div");
+        main.className = "lr-main";
+        var en = document.createElement("input");
+        en.type = "checkbox"; en.checked = !!t.enabled; en.title = "تفعيل الطبقة";
+        en.onchange = function () { t.enabled = this.checked; renderPreview(); refreshBurnCmd(); };
+        var tx = document.createElement("input");
+        tx.type = "text"; tx.maxLength = 200; tx.value = t.text || "";
+        tx.placeholder = "نص الطبقة " + (i + 1);
+        tx.oninput = function () { t.text = this.value; renderPreview(); refreshBurnCmd(); };
+        var sz = document.createElement("input");
+        sz.type = "range"; sz.min = "2"; sz.max = "20"; sz.value = t.size || 5;
+        sz.title = "حجم الخط — ٪ من ارتفاع الشاشة";
+        sz.oninput = function () { t.size = parseInt(this.value, 10); renderPreview(); refreshBurnCmd(); };
+        var co = document.createElement("input");
+        co.type = "color"; co.value = t.color || "#ffffff"; co.title = "لون النص";
+        co.oninput = function () { t.color = this.value; renderPreview(); refreshBurnCmd(); };
+        var bg = document.createElement("input");
+        bg.type = "color"; bg.value = t.bg || "#000000"; bg.title = "لون الخلفية";
+        bg.oninput = function () { t.bg = this.value; renderPreview(); refreshBurnCmd(); };
+        var bgNone = document.createElement("label");
+        bgNone.className = "chk"; bgNone.style.margin = "0"; bgNone.style.fontSize = "12px";
+        var bgChk = document.createElement("input");
+        bgChk.type = "checkbox"; bgChk.checked = !t.bg;
+        bgChk.onchange = function () { t.bg = this.checked ? "" : bg.value; renderPreview(); refreshBurnCmd(); };
+        bgNone.appendChild(bgChk);
+        bgNone.appendChild(document.createTextNode("بدون خلفية"));
+        main.appendChild(en); main.appendChild(tx); main.appendChild(sz);
+        main.appendChild(co); main.appendChild(bg); main.appendChild(bgNone);
+        row.appendChild(main);
+        var side = document.createElement("div");
+        side.style.cssText = "display:flex;flex-direction:column;gap:4px;align-items:flex-end";
+        var pos = document.createElement("div");
+        pos.className = "lr-pos";
+        pos.textContent = "x:" + (+t.x).toFixed(1) + "% y:" + (+t.y).toFixed(1) + "% → layer" + (i + 1) + ".txt";
+        var btns = document.createElement("div");
+        btns.style.cssText = "display:flex;gap:6px";
+        var cp = document.createElement("button");
+        cp.className = "btn small"; cp.textContent = "📋";
+        cp.title = "نسخ النص — احفظه في layer" + (i + 1) + ".txt لأمر الحرق";
+        cp.onclick = function () {
+            if (t.text) { copyText(t.text); } else { toast("اكتب النص أولاً", true); }
+        };
+        var del = document.createElement("button");
+        del.className = "btn small danger"; del.textContent = "🗑";
+        del.title = "حذف الطبقة";
+        del.onclick = function () {
+            curTexts.splice(i, 1);
+            renderLayers(); renderPreview(); refreshBurnCmd();
+        };
+        btns.appendChild(cp); btns.appendChild(del);
+        side.appendChild(pos); side.appendChild(btns);
+        row.appendChild(side);
+        boxEl.appendChild(row);
+    });
+}
+
+$("addTxtBtn").onclick = function () {
+    if (curTexts.length >= 8) { toast("الحد الأقصى 8 طبقات نص", true); return; }
+    curTexts.push({
+        id: "t" + Date.now().toString(36).slice(-8), enabled: true,
+        text: "نص جديد", x: 30, y: 40, size: 5,
+        color: "#ffffff", bg: ""
+    });
+    renderLayers(); renderPreview(); refreshBurnCmd();
+};
+
+(function () {
+    var prev = $("studioPrev"), dragEl = null, offX = 0, offY = 0;
+    function pct(e) {
+        var r = prev.getBoundingClientRect();
+        return {
+            x: ((e.clientX - r.left) / r.width) * 100,
+            y: ((e.clientY - r.top) / r.height) * 100
+        };
+    }
+    prev.addEventListener("pointerdown", function (e) {
+        var el = e.target.closest ? e.target.closest(".pv-drag") : null;
+        if (!el) { return; }
+        dragEl = el;
+        el.classList.add("dragging");
+        var p = pct(e), r = el.getBoundingClientRect(), pr = prev.getBoundingClientRect();
+        offX = ((r.left - pr.left) / pr.width) * 100 - p.x;
+        offY = ((r.top - pr.top) / pr.height) * 100 - p.y;
+        try { prev.setPointerCapture(e.pointerId); } catch (err) {}
+        e.preventDefault();
+    });
+    prev.addEventListener("pointermove", function (e) {
+        if (!dragEl) { return; }
+        var p = pct(e);
+        var nx = Math.max(0, Math.min(96, p.x + offX));
+        var ny = Math.max(0, Math.min(96, p.y + offY));
+        if (dragEl.id === "prevLogo") {
+            logoXY.x = Math.round(nx * 10) / 10;
+            logoXY.y = Math.round(ny * 10) / 10;
+        } else {
+            for (var i = 0; i < curTexts.length; i++) {
+                if (curTexts[i].id === dragEl.dataset.tid) {
+                    curTexts[i].x = Math.round(nx * 10) / 10;
+                    curTexts[i].y = Math.round(ny * 10) / 10;
+                    break;
+                }
+            }
+        }
+        renderPreview();
+        e.preventDefault();
+    });
+    function endDrag() {
+        if (!dragEl) { return; }
+        dragEl.classList.remove("dragging");
+        dragEl = null;
+        renderLayers();   // تحديث قراءات x,y وملفات الحرق
+        refreshBurnCmd();
+    }
+    prev.addEventListener("pointerup", endDrag);
+    prev.addEventListener("pointercancel", endDrag);
+})();
+
+// ===== توليد أمر «الحرق على المصدر» — يطابق إعدادات الاستوديو الحالية =====
+// القالب مُختبَر على ffmpeg 7.x: scale مرجعي (rw) + drawbox + drawtext (fribidi للعربية)
+var BURN_FONTS = {
+    win:   "C\\:/Windows/Fonts/arial.ttf",
+    linux: "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    mac:   "/System/Library/Fonts/Supplemental/Arial.ttf"
+};
+
+var FB = String.fromCharCode(91), FE = String.fromCharCode(93); // [ ] — حماية من أي تلف نصي
+function L(s) { return FB + s + FE; }
+
+function burnOverlayXY(logo, tickOn) {
+    var xL = "x='main_w*0.04'", xR = "x='main_w*0.96-w'";
+    var yT = "y='main_h*0.04'";
+    var yB = tickOn ? "y='main_h*0.91-h'" : "y='main_h*0.96-h'"; // فوق الشريط كما في المشغل
+    // موضع حر بالسحب (بأسلوب OBS) يتفوق على الزوايا
+    if ((logo.x && logo.x > 0) || (logo.y && logo.y > 0)) {
+        return "overlay=x='main_w*" + (+logo.x).toFixed(1) + "/100':y='main_h*" +
+            (+logo.y).toFixed(1) + "/100'";
+    }
+    if (logo.position === "top-right")    { return "overlay=" + xR + ":" + yT; }
+    if (logo.position === "bottom-left")  { return "overlay=" + xL + ":" + yB; }
+    if (logo.position === "bottom-right") { return "overlay=" + xR + ":" + yB; }
+    return "overlay=" + xL + ":" + yT;
+}
+
+function buildBurnCmd() {
+    var p = brandingPayload();
+    var logoOn = !!p.logo.enabled && !!prevLogoCur;
+    var tickOn = !!p.ticker.enabled && !!p.ticker.text;
+    if (!logoOn && !tickOn) { return null; }
+    var parts = [], outLabel;
+    if (logoOn) {
+        parts.push(L("0:v") + "split" + L("m1") + L("m2"));
+        parts.push(L("1:v") + "format=rgba,colorchannelmixer=aa=" +
+            Number(p.logo.opacity).toFixed(2) + L("lg"));
+        parts.push(L("lg") + L("m2") + "scale=w=rw*" +
+            (p.logo.width_pct / 100).toFixed(3) + ":h=-1" + L("lg2"));
+    }
+    var chain = L(logoOn ? "m1" : "0:v"), fx = [];
+    if (tickOn) {
+        fx.push("drawbox=x=0:y=ih-ih*0.075:w=iw:h=ih*0.075:color=" + p.ticker.bg + "@1:t=fill");
+        fx.push("drawtext=fontfile=" + BURN_FONTS[$("burnOs").value] +
+            ":textfile=ticker.txt:fontcolor=" + p.ticker.color +
+            ":fontsize=32:x='w-mod(t*" + parseInt(p.ticker.speed, 10) + ",w+tw)'" +
+            ":y='h-h*0.075+(h*0.075-th)/2'");
+    }
+    (p.texts || []).forEach(function (t, i) {
+        if (!t.enabled || !t.text) { return; }
+        fx.push("drawtext=fontfile=" + BURN_FONTS[$("burnOs").value] +
+            ":textfile=layer" + (i + 1) + ".txt" +
+            ":fontcolor=" + (t.color || "#ffffff") +
+            ":fontsize='h*" + parseInt(t.size || 5, 10) + "/100'" +
+            ":x='w*" + (+t.x).toFixed(1) + "/100':y='h*" + (+t.y).toFixed(1) + "/100'");
+    });
+    chain += (fx.length ? fx.join(",") : "null") + L("v");
+    parts.push(chain);
+    if (logoOn) {
+        parts.push(L("v") + L("lg2") + burnOverlayXY(p.logo, tickOn) + L("vout"));
+        outLabel = L("vout");
+    } else {
+        outLabel = L("v");
+    }
+    return "ffmpeg -y -i input.mp4" + (logoOn ? " -i logo.png" : "") +
+        " -filter_complex \"" + parts.join(";") + "\"" +
+        " -map \"" + outLabel + "\" -map 0:a?" +
+        " -c:v libx264 -preset veryfast -crf 23 -c:a copy -movflags +faststart output_burned.mp4";
+}
+
+function refreshBurnCmd() {
+    var p = brandingPayload(), notes = [];
+    if (p.logo.enabled && !prevLogoCur) {
+        notes.push("⚠️ الشعار مفعّل لكن لم ترفع صورة logo.png بعد — سيُولَّد الأمر بدونه حتى ترفعها من قسم الشعار أعلاه.");
+    }
+    var cmd = buildBurnCmd();
+    $("burnCmd").textContent =
+        (notes.length ? notes.join("\n") + "\n" : "") +
+        (cmd || "— فعّل اللوغو أو الشريط أعلاه ليُولَّد الأمر —");
+}
+
+$("burnOs").onchange = refreshBurnCmd;
+["logoEnabled", "logoPos", "logoSize", "logoOp",
+ "tickEnabled", "tickText", "tickColor", "tickBg", "tickSpeed"]
+    .forEach(function (id) {
+        $(id).addEventListener("input", refreshBurnCmd);
+        $(id).addEventListener("change", refreshBurnCmd);
+    });
+$("copyBurnBtn").onclick = function () {
+    var lines = $("burnCmd").textContent.split("\n");
+    for (var i = 0; i < lines.length; i++) {
+        if (lines[i].indexOf("ffmpeg") === 0) { copyText(lines[i]); return; }
+    }
+    toast("ولّد الأمر أولاً — فعّل اللوغو أو الشريط", true);
+};
+$("copyTickTxtBtn").onclick = function () {
+    var t = brandingPayload().ticker.text;
+    if (t) { copyText(t); } else { toast("اكتب نص الشريط أولاً", true); }
+};
+$("burnLogoUrl").textContent = location.origin + "/logo.png";
+
+// ===== وضع OBS Studio — mini-obs: بث حي مركَّب بـ ffmpeg على حاسوبك =====
+// نفس فكرة OBS: مدخلات (قائمة تشغيل + شعار + شريط) تُركَّب لحظياً وتُخرَج للتسجيل والبث.
+// يعمل محلياً (Koyeb بلا ffmpeg) — ملفات التسجيل تُرفع للمكتبة فتظهر محروقة في كل المشغلات.
+
+function obsCanvasNorm() {
+    // لوحة موحّدة 1280x720 مثل كانفس OBS: تصغير مع الحفاظ على النسب + حواف سوداء + 30fps
+    return "scale=1280:720:force_original_aspect_ratio=decrease," +
+        "pad=1280:720:(ow-iw)/2:(oh-ih)/2,fps=30,setsar=1";
+}
+
+function buildObsFilter(p, os, logoOn, tickOn) {
+    var parts = [], fx = [];
+    if (tickOn) {
+        fx.push("drawbox=x=0:y=ih-ih*0.075:w=iw:h=ih*0.075:color=" + p.ticker.bg + "@1:t=fill");
+        fx.push("drawtext=fontfile=" + BURN_FONTS[os] +
+            ":textfile=ticker.txt:reload=1:fontcolor=" + p.ticker.color +
+            ":fontsize=32:x='w-mod(t*" + parseInt(p.ticker.speed, 10) + ",w+tw)'" +
+            ":y='h-h*0.075+(h*0.075-th)/2'");
+    }
+    (p.texts || []).forEach(function (t, i) {
+        if (!t.enabled || !t.text) { return; }
+        fx.push("drawtext=fontfile=" + BURN_FONTS[os] +
+            ":textfile=layer" + (i + 1) + ".txt:reload=1" +
+            ":fontcolor=" + (t.color || "#ffffff") +
+            ":fontsize='h*" + parseInt(t.size || 5, 10) + "/100'" +
+            ":x='w*" + (+t.x).toFixed(1) + "/100':y='h*" + (+t.y).toFixed(1) + "/100'");
+    });
+    if (logoOn) {
+        parts.push(L("0:v") + obsCanvasNorm() + ",split" + L("m1") + L("m2"));
+        parts.push(L("1:v") + "format=rgba,colorchannelmixer=aa=" +
+            Number(p.logo.opacity).toFixed(2) + L("lg"));
+        parts.push(L("lg") + L("m2") + "scale=w=rw*" +
+            (p.logo.width_pct / 100).toFixed(3) + ":h=-1" + L("lg2"));
+        parts.push(L("m1") + (fx.length ? fx.join(",") : "null") + L("v"));
+        parts.push(L("v") + L("lg2") + burnOverlayXY(p.logo, tickOn) + L("vout"));
+    } else {
+        parts.push(L("0:v") + obsCanvasNorm() +
+            (fx.length ? "," + fx.join(",") : "") + L("vout"));
+    }
+    return { graph: parts.join(";"), out: L("vout") };
+}
+
+function shQ(s) { return "'" + String(s).replace(/'/g, "'\\''") + "'"; }
+
+function batEsc(s) {
+    return String(s).replace(/\^/g, "^^").replace(/%/g, "%%")
+        .replace(/&/g, "^&").replace(/</g, "^<").replace(/>/g, "^>")
+        .replace(/\|/g, "^|").replace(/\(/g, "^(").replace(/\)/g, "^)");
+}
+
+function buildObsScript() {
+    if (typeof BURN_FONTS === "undefined") { return "— جارٍ التحميل —"; }
+    var os = $("obsOs").value, mode = $("obsMode").value;
+    var chan = obsChanName();
+    var p = brandingPayload();
+    var logoOn = !!p.logo.enabled && !!prevLogoCur;
+    var tickOn = !!p.ticker.enabled && !!p.ticker.text;
+    var win = (os === "win");
+    var pushOn = (mode === "push" || mode === "both");
+    var NL = win ? "\r\n" : "\n";
+    var g = buildObsFilter(p, os, logoOn, tickOn);
+    var d = new Date().toISOString().slice(0, 10);
+    var cmd = ["ffmpeg -y -re -f concat -safe 0 -stream_loop -1 -i playlist.txt"];
+    if (logoOn) { cmd.push("-loop 1 -i logo.png"); }
+    cmd.push("-filter_complex \"" + g.graph + "\"");
+    cmd.push("-map \"" + g.out + "\" -map 0:a?");
+    cmd.push("-c:v libx264 -preset veryfast -tune zerolatency -crf 23 -pix_fmt yuv420p -g 120 -sc_threshold 0");
+    cmd.push("-c:a aac -b:a 128k -ar 44100");
+    if (mode === "rec" || mode === "both") {
+        cmd.push("-f segment -segment_time 600 -segment_format mp4 -segment_format_options movflags=+faststart -reset_timestamps 1 " +
+            (win ? "recorded\\live_%%03d.mp4" : "recorded/live_%03d.mp4"));
+    }
+    if (pushOn) {
+        cmd.push("-f hls -hls_time 4 -hls_list_size 6 -hls_flags delete_segments+omit_endlist" +
+            " -hls_segment_filename " + (win ? "push\\seg_%%05d.ts" : "push/seg_%05d.ts") +
+            " " + (win ? "push\\live.m3u8" : "push/live.m3u8"));
+    }
+    var ffLine = cmd.join(win ? " " : " \\\n    ");
+    var S = [];
+    if (!win) {
+        S.push("#!/bin/sh");
+        S.push("# ============================================================");
+        S.push("#  mini-obs — بث حي بأسلوب OBS Studio عبر ffmpeg");
+        S.push("#  مولَّد من لوحة الاستوديو (" + d + ") — " + location.origin);
+        S.push("# ============================================================");
+        S.push('cd "$(dirname "$0")" || exit 1');
+        S.push("mkdir -p videos recorded push");
+        S.push("# 1) ضع فيديوهاتك (mp4/mkv/mov) داخل مجلد videos");
+        S.push("# 2) شغّل:  sh mini-obs.sh      — للإيقاف: Ctrl+C");
+        S.push("# 3) وضع «بث حي»: يُرفع البث تلقائياً إلى قناتك (راجع push.key والرابط في اللوحة)");
+        S.push("# 4) وضع «تسجيل»: الملفات في recorded/ — ملف كل 10 دقائق لرفعه إلى المكتبة");
+        if (tickOn) { S.push("# 5) عدّل ticker.txt أثناء التشغيل — يظهر التغيير في البث خلال ثوانٍ"); }
+        if (tickOn) {
+            S.push("[ -f ticker.txt ] || printf '%s\\n' " + shQ(p.ticker.text) + " > ticker.txt");
+        }
+        (p.texts || []).forEach(function (t, i) {
+            if (!t.enabled || !t.text) { return; }
+            S.push("[ -f layer" + (i + 1) + ".txt ] || printf '%s\\n' " + shQ(t.text) + " > layer" + (i + 1) + ".txt");
+        });
+        if (logoOn) {
+            S.push("if [ ! -f logo.png ]; then");
+            S.push('  curl -sL -o logo.png "' + location.origin + '/logo.png" || wget -qO logo.png "' + location.origin + '/logo.png" || true');
+            S.push("fi");
+            S.push('if [ ! -s logo.png ]; then echo "حمّل logo.png من ' + location.origin + '/logo.png وضعه بجانب السكربت"; exit 1; fi');
+        }
+        if (pushOn) {
+            S.push("");
+            S.push("# ---------- البث الحي: رفع المقاطع إلى قناتك ----------");
+            S.push('PUSH_URL="' + location.origin + '/api/live-push/' + chan + '"');
+            S.push('KEY="$(cat push.key 2>/dev/null)"');
+            S.push('if [ -z "$KEY" ]; then echo "تنبيه: أنشئ ملف push.key واكتب فيه كلمة مرور اللوحة — بدونه لن يُرفع البث إلى قناتك"; fi');
+            S.push('curl -fsS -m 20 -X POST -H "X-Push-Key: $KEY" "$PUSH_URL/__reset__" >/dev/null 2>&1 || true');
+            S.push("rm -rf push; mkdir -p push");
+            S.push("push_loop() {");
+            S.push("  while :; do");
+            S.push('    for f in push/seg_*.ts; do');
+            S.push('      [ -f "$f" ] || continue');
+            S.push('      if curl -fsS -m 30 -X POST -H "X-Push-Key: $KEY" --data-binary "@$f" "$PUSH_URL/$(basename "$f")" >/dev/null 2>&1; then');
+            S.push('        rm -f "$f"');
+            S.push("      fi");
+            S.push("    done");
+            S.push("    if [ -f push/live.m3u8 ]; then");
+            S.push('      curl -fsS -m 30 -X POST -H "X-Push-Key: $KEY" --data-binary "@push/live.m3u8" "$PUSH_URL/live.m3u8" >/dev/null 2>&1 || true');
+            S.push("    fi");
+            S.push("    sleep 2");
+            S.push("  done");
+            S.push("}");
+            S.push("push_loop &");
+        }
+        S.push("");
+        S.push("while :; do");
+        S.push("  : > playlist.txt");
+        S.push("  for f in videos/*.mp4 videos/*.MP4 videos/*.mkv videos/*.mov; do");
+        S.push('    [ -f "$f" ] && printf "file \'%s\'\\n" "$PWD/$f" >> playlist.txt');
+        S.push("  done");
+        S.push("  if [ ! -s playlist.txt ]; then");
+        S.push('    echo "== ضع ملفات الفيديو في مجلد videos ثم أعد المحاولة =="');
+        S.push("    sleep 10");
+        S.push("    continue");
+        S.push("  fi");
+        S.push("");
+        S.push("  " + ffLine);
+        S.push("");
+        S.push('  echo "== ffmpeg توقف — إعادة تشغيل بعد 3 ثوانٍ =="');
+        S.push("  sleep 3");
+        S.push("done");
+    } else {
+        S.push("@echo off");
+        S.push("chcp 65001 >nul");
+        S.push('set "PUSH_URL=' + location.origin + '/api/live-push/' + chan + '"');
+        S.push("if exist push.key set /p KEY=<push.key 2>nul");
+        S.push('if "%~1"=="__push__" goto pushmode');
+        S.push("title mini-obs — بث حي بأسلوب OBS Studio");
+        S.push("rem mini-obs — مولَّد من لوحة الاستوديو (" + d + ") — " + location.origin);
+        S.push('cd /d "%~dp0"');
+        S.push("if not exist videos mkdir videos");
+        S.push("if not exist recorded mkdir recorded");
+        S.push("if not exist push mkdir push");
+        if (tickOn) {
+            S.push("if not exist ticker.txt echo " + batEsc(p.ticker.text) + ">ticker.txt");
+        }
+        (p.texts || []).forEach(function (t, i) {
+            if (!t.enabled || !t.text) { return; }
+            S.push("if not exist layer" + (i + 1) + ".txt echo " + batEsc(t.text) + ">layer" + (i + 1) + ".txt");
+        });
+        if (logoOn) {
+            S.push('if not exist logo.png curl -sL -o logo.png "' + location.origin + '/logo.png"');
+            S.push("if not exist logo.png echo لم أجد logo.png — حمّله من " + location.origin + "/logo.png وضعه بجانب السكربت & pause & exit /b 1");
+        }
+        if (pushOn) {
+            S.push("if not exist push.key echo تنبيه: أنشئ ملف push.key واكتب فيه كلمة مرور اللوحة — بدونه لن يُرفع البث");
+            S.push("rmdir /s /q push >nul 2>&1");
+            S.push("mkdir push");
+            S.push('curl -fsS -m 20 -X POST -H "X-Push-Key: %KEY%" "%PUSH_URL%/__reset__" >nul 2>&1');
+            S.push('start /b "" cmd /c "%~f0" __push__');
+        }
+        S.push(":loop");
+        S.push("(for %%f in (videos\\*.mp4 videos\\*.MP4 videos\\*.mkv videos\\*.mov) do @echo file '%%~ff')>playlist.txt");
+        S.push("for %%A in (playlist.txt) do if %%~zA EQU 0 (");
+        S.push("  echo == ضع ملفات الفيديو في مجلد videos ثم أعد المحاولة ==");
+        S.push("  timeout /t 10 /nobreak >nul");
+        S.push("  goto :loop");
+        S.push(")");
+        S.push("");
+        S.push(ffLine);
+        S.push("");
+        S.push("echo == ffmpeg توقف — إعادة تشغيل بعد 3 ثوانٍ ==");
+        S.push("timeout /t 3 /nobreak >nul");
+        S.push("goto :loop");
+        if (pushOn) {
+            S.push("");
+            S.push(":pushmode");
+            S.push(":pushloop");
+            S.push("for /f \"delims=\" %%n in ('dir /b push\\seg_*.ts 2^>nul') do call :upseg %%n");
+            S.push('if exist push\\live.m3u8 curl -fsS -m 30 -X POST -H "X-Push-Key: %KEY%" --data-binary "@push\\live.m3u8" "%PUSH_URL%/live.m3u8" >nul 2>&1');
+            S.push("timeout /t 2 /nobreak >nul 2>&1");
+            S.push("goto pushloop");
+            S.push("");
+            S.push(":upseg");
+            S.push('curl -fsS -m 30 -X POST -H "X-Push-Key: %KEY%" --data-binary "@push\\%~1" "%PUSH_URL%/%~1" >nul 2>&1');
+            S.push('if not errorlevel 1 del "push\\%~1" >nul 2>&1');
+            S.push("exit /b");
+        }
+    }
+    return S.join(NL);
+}
+function obsChanName() {
+    return String($("obsChan").value || "main").toLowerCase()
+        .replace(/[^a-z0-9_-]/g, "") || "main";
+}
+
+function refreshObsCmd() {
+    try {
+        $("obsCmd").textContent = buildObsScript();
+        $("obsLiveUrl").textContent = location.origin + "/mylive/" + obsChanName() + "/live.m3u8";
+    } catch (e) {
+        $("obsCmd").textContent = "خطأ في التوليد: " + e;
+    }
+}
+// تحديث لوحة OBS مع كل تغيير في الاستوديو (نفس محفّزات لوحة الحرق)
+var _refreshBurnCmdBase = refreshBurnCmd;
+refreshBurnCmd = function () { _refreshBurnCmdBase(); refreshObsCmd(); };
+["logoEnabled", "logoPos", "logoSize", "logoOp",
+ "tickEnabled", "tickText", "tickColor", "tickBg", "tickSpeed"]
+    .forEach(function (id) {
+        $(id).addEventListener("input", refreshObsCmd);
+        $(id).addEventListener("change", refreshObsCmd);
+    });
+$("obsOs").onchange = refreshObsCmd;
+$("obsMode").onchange = refreshObsCmd;
+$("obsChan").addEventListener("input", refreshObsCmd);
+$("obsChan").addEventListener("change", refreshObsCmd);
+$("copyObsBtn").onclick = function () { copyText($("obsCmd").textContent); };
+refreshObsCmd();
+
+
+// ===== الحرق داخل الفيديو من المتصفح (ffmpeg.wasm) — النسخة المحروقة تدخل المكتبة والبث =====
+// الفكرة: المتصفح نفسه يعمل كمحرك ترميز (ffmpeg يعمل داخل الصفحة عبر WebAssembly).
+// نحمّل الفيديو من المحطة، نرسم الشعار/الشريط/طبقات النص كصور PNG شفافة بدقة الفيديو نفسها
+// (تشكيل عربي سليم من المتصفح — بلا مشاكل الخطوط)، نركبها بمرشحات overlay ثم نرفع
+// النسخة المحروقة إلى المكتبة على دفعات صغيرة — فتُبثّ النسخة المحروقة في القناة
+// (VLC وأجهزة IPTV والتضمين وكل المشغلات) بلا أي أدوات خارجية.
+
+var BURNIN = {
+    // ملف الـ worker UMD (814) يُنشَأ كـ module worker عبر classWorkerURL، وفيه يقع
+    // الفشل المتعمد لـ importScripts إلى import(coreURL) — لذا تكون النواة نسخة ESM
+    // ذات export default (وليست UMD وإلا فشل «failed to import ffmpeg-core.js»)
+    WORKER_JS: "https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd/814.ffmpeg.js",
+    CORE_JS: "https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.js",
+    CORE_WASM: "https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.wasm",
+    MAX_MB: 700, WARN_MB: 250, CHUNK_MB: 8
+};
+var burnFF = null, burnFFLoading = null, burnLogs = [], burnProgCb = null, burnBusy = false;
+var burnSid = null;
+
+// toBlobURL مصغرة داخلية — حزمة @ffmpeg/util UMD معطوبة في المتصفح (تشير إلى exports)
+function burnToBlobURL(url, mime) {
+    return fetch(url).then(function (r) {
+        if (!r.ok) { throw new Error("فشل تحميل " + url + " (خطأ " + r.status + ")"); }
+        return r.arrayBuffer();
+    }).then(function (b) {
+        return URL.createObjectURL(new Blob([b], { type: mime }));
+    });
+}
+
+function burnEngine() {
+    if (burnFF) { return Promise.resolve(burnFF); }
+    if (burnFFLoading) { return burnFFLoading; }
+    burnFFLoading = new Promise(function (res, rej) {
+        if (!window.FFmpegWASM || !window.FFmpegWASM.FFmpeg) {
+            rej(new Error("محرك ffmpeg لم يُحمَّل من الإنترنت — تحقق من الاتصال ثم أعد المحاولة"));
+            return;
+        }
+        var ff = new FFmpegWASM.FFmpeg();
+        ff.on("log", function (m) {
+            burnLogs.push(m && m.message ? m.message : String(m));
+            if (burnLogs.length > 300) { burnLogs.shift(); }
+        });
+        ff.on("progress", function (p) { if (burnProgCb) { burnProgCb(p); } });
+        Promise.all([
+            burnToBlobURL(BURNIN.CORE_JS, "text/javascript"),
+            burnToBlobURL(BURNIN.CORE_WASM, "application/wasm"),
+            burnToBlobURL(BURNIN.WORKER_JS, "text/javascript")
+        ]).then(function (u) {
+            return ff.load({
+                coreURL: u[0], wasmURL: u[1],
+                classWorkerURL: u[2] // عبر CDN يلزم إعطاء ملف الـ worker كـ Blob وإلا يمنعه المتصفح
+            }).then(function () { return ff; });
+        }).then(function (ok) { burnFF = ok; res(ok); })
+            .catch(function (e) { burnFFLoading = null; rej(e); });
+    });
+    return burnFFLoading;
+}
+
+// ---------- واجهة المراحل ----------
+function burnStage(n) {
+    for (var i = 1; i <= 4; i++) {
+        var row = $("burnStg" + i);
+        if (row) { row.classList.toggle("active", i === n); }
+        if (i > n) { burnSetPct(i, 0); burnSetInfo(i, ""); }
+    }
+}
+function burnSetPct(n, p) {
+    var pc = Math.max(0, Math.min(100, Math.round(p * 100)));
+    var bar = $("burnBar" + n);
+    if (bar) { bar.style.width = pc + "%"; }
+    burnSetInfo(n, pc + "%");
+}
+function burnSetInfo(n, txt) {
+    var e = $("burnPct" + n);
+    if (e) { e.textContent = txt; }
+}
+function burnMsg(t, isErr) {
+    var m = $("burnInMsg");
+    if (!m) { return; }
+    m.textContent = t || "";
+    m.style.color = isErr ? "var(--danger)" : "";
+}
+
+// ---------- رسم الطبقات بدقة الفيديو (Canvas يشكّل العربية بشكل سليم) ----------
+function canvasPNG(cv) {
+    return new Promise(function (res, rej) {
+        cv.toBlob(function (b) {
+            if (!b) { rej(new Error("تعذر توليد صورة الطبقة")); return; }
+            b.arrayBuffer().then(function (ab) { res(new Uint8Array(ab)); }, rej);
+        }, "image/png");
+    });
+}
+function burnFont(px) {
+    return "bold " + px + 'px "Segoe UI", Tahoma, "Noto Sans Arabic", Arial, sans-serif';
+}
+function burnTextCanvas(text, px, color, bg, maxW) {
+    var probe = document.createElement("canvas");
+    var pc = probe.getContext("2d");
+    pc.font = burnFont(px);
+    var tw = Math.ceil(pc.measureText(text).width);
+    var padX = Math.max(6, Math.round(px * 0.45));
+    var w = Math.max(4, Math.min(maxW || 32000, tw + padX * 2));
+    var h = Math.max(4, Math.round(px * 1.5));
+    var cv = document.createElement("canvas");
+    cv.width = w; cv.height = h;
+    var cx = cv.getContext("2d");
+    cx.font = burnFont(px);
+    cx.direction = "rtl";
+    cx.textBaseline = "middle";
+    if (bg) { cx.fillStyle = bg; cx.fillRect(0, 0, w, h); }
+    cx.fillStyle = color || "#ffffff";
+    cx.fillText(text, padX, h / 2);
+    return cv;
+}
+function renderTickerPNG(W, H, p, text) {
+    var stripH = Math.max(24, Math.round(H * 0.075));
+    var px = Math.max(12, Math.round(stripH * 0.58));
+    return canvasPNG(burnTextCanvas(text, px, p.ticker.color, p.ticker.bg, 32000));
+}
+function renderLayerPNG(W, H, t) {
+    var px = Math.max(9, Math.round(H * (parseInt(t.size || 5, 10) || 5) / 100));
+    return canvasPNG(burnTextCanvas(t.text, px, t.color, t.bg, W));
+}
+function renderLogoPNG(W, H, p) {
+    return new Promise(function (res, rej) {
+        var img = new Image();
+        img.onload = function () {
+            var lw = Math.max(8, Math.round(W * (parseInt(p.logo.width_pct, 10) || 14) / 100));
+            var lh = Math.max(4, Math.round(lw * (img.naturalHeight || 1) / (img.naturalWidth || 1)));
+            var cv = document.createElement("canvas");
+            cv.width = lw; cv.height = lh;
+            var cx = cv.getContext("2d");
+            cx.globalAlpha = Number(p.logo.opacity) || 1;
+            cx.drawImage(img, 0, 0, lw, lh);
+            canvasPNG(cv).then(res, rej);
+        };
+        img.onerror = function () { rej(new Error("تعذر تحميل صورة الشعار — أعد رفعها من قسم الشعار أعلاه")); };
+        img.src = prevLogoCur;
+    });
+}
+
+// ---------- تركيب أمر الحرق (نفس منطق المعاينة في المشغل) ----------
+function burnTickerText(name) {
+    var p = brandingPayload();
+    var t = p.ticker.text || "";
+    if ($("burnInNow") && $("burnInNow").checked && name) {
+        t = "يُبث الآن: " + name + (t ? "  •  " + t : "");
+    }
+    return t;
+}
+function burnInLogoXY(logo, tickOn) {
+    var yB = tickOn ? "main_h*0.905-h" : "main_h*0.955-h";
+    var lx = +logo.x || 0, ly = +logo.y || 0;
+    if (lx > 0 || ly > 0) {
+        return "x='main_w*" + lx.toFixed(1) + "/100':y='main_h*" + ly.toFixed(1) + "/100'";
+    }
+    if (logo.position === "top-right") { return "x='main_w*0.96-w':y='main_h*0.04'"; }
+    if (logo.position === "bottom-left") { return "x='main_w*0.04':y='" + yB + "'"; }
+    if (logo.position === "bottom-right") { return "x='main_w*0.96-w':y='" + yB + "'"; }
+    return "x='main_w*0.04':y='main_h*0.04'";
+}
+// plan: قائمة الطبقات بالترتيب {kind: logo|tick|layer, input: رقم المدخل, x, y}
+function buildBurnInGraph(p, plan) {
+    var parts = [], prev = "0:v", tickOn = false, i;
+    for (i = 0; i < plan.length; i++) { if (plan[i].kind === "tick") { tickOn = true; } }
+    for (i = 0; i < plan.length; i++) {
+        var o = plan[i], lbl = "s" + o.input, expr;
+        // في overlay: w/h أبعاد الطبقة المركوبة، W/H أبعاد الفيديو الرئيسي
+        if (o.kind === "logo") { expr = burnInLogoXY(p.logo, tickOn) + ":shortest=1"; }
+        else if (o.kind === "tick") {
+            expr = "x='main_w-mod(t*" + parseInt(p.ticker.speed, 10) +
+                ",main_w+w)':y='main_h-h':eval=frame:shortest=1";
+        } else {
+            expr = "x='main_w*" + (+o.x).toFixed(1) + "/100':y='main_h*" +
+                (+o.y).toFixed(1) + "/100':shortest=1";
+        }
+        parts.push(L(prev) + L(o.input + ":v") + "overlay=" + expr + L(lbl));
+        prev = lbl;
+    }
+    parts.push(L(prev) + "format=yuv420p" + L("vout"));
+    return { graph: parts.join(";"), out: L("vout") };
+}
+
+// ---------- الرفع على دفعات (يتجاوز أي حد لحجم الطلب الواحد) ----------
+function burnXhr(url, blob, onProg) {
+    return new Promise(function (res, rej) {
+        var x = new XMLHttpRequest();
+        x.open("POST", url);
+        x.responseType = "json";
+        if (onProg) {
+            x.upload.onprogress = function (ev) {
+                if (ev.lengthComputable) { onProg(ev.loaded / ev.total); }
+            };
+        }
+        x.onload = function () {
+            var d = x.response;
+            if (x.status >= 200 && x.status < 300 && d && d.ok !== false) { res(d); }
+            else { rej(new Error((d && d.error) || ("تعذر الرفع (خطأ " + x.status + ")"))); }
+        };
+        x.onerror = function () { rej(new Error("انقطع الاتصال بالخادم أثناء الرفع")); };
+        x.setRequestHeader("Content-Type", "application/octet-stream");
+        x.send(blob);
+    });
+}
+function burnAbort() {
+    if (burnSid) {
+        var s = burnSid;
+        burnSid = null;
+        fetch("/api/videos/upload-abort?sid=" + encodeURIComponent(s),
+            { method: "POST", credentials: "same-origin" }).catch(function () {});
+    }
+}
+
+// ---------- التدفق الكامل ----------
+async function burnInRun() {
+    if (burnBusy) { return; }
+    var vid = $("burnInVid").value;
+    var v = null;
+    state.videos.forEach(function (x) { if (x.id === vid) { v = x; } });
+    if (!v) { burnMsg("اختر فيديو جاهزاً من القائمة أولاً", true); return; }
+    var p = brandingPayload();
+    var logoOn = !!p.logo.enabled && !!prevLogoCur;
+    var tickText = burnTickerText(v.name);
+    var tickOn = !!p.ticker.enabled && !!tickText;
+    var layers = (p.texts || []).filter(function (t) { return t.enabled && t.text; });
+    if (!logoOn && !tickOn && !layers.length) {
+        burnMsg("لا شيء ليُحرق — فعّل الشعار أو الشريط أو أضف طبقة نص من أعلى الصفحة واحفظ الإعدادات", true);
+        return;
+    }
+    burnBusy = true;
+    $("burnInStart").disabled = true;
+    burnLogs = [];
+    burnSid = null;
+    var stopBtn = $("burnInStop");
+    if (stopBtn) { stopBtn.disabled = false; }
+    try {
+        // 1) تحميل الفيديو إلى المتصفح
+        burnStage(1);
+        burnMsg("جارٍ تحميل الفيديو من المحطة إلى المتصفح…");
+        var resp = await fetch("/api/media/" + encodeURIComponent(v.id),
+            { credentials: "same-origin", cache: "no-store" });
+        if (!resp.ok) {
+            var j = null;
+            try { j = await resp.json(); } catch (e1) {}
+            throw new Error((j && j.error) || ("فشل تحميل الفيديو من المحطة (خطأ " + resp.status + ")"));
+        }
+        var total = parseInt(resp.headers.get("Content-Length") || "0", 10);
+        var chunks = [], got = 0;
+        if (resp.body && resp.body.getReader) {
+            var reader = resp.body.getReader();
+            for (;;) {
+                var r = await reader.read();
+                if (r.done) { break; }
+                chunks.push(r.value);
+                got += r.value.length;
+                if (got > BURNIN.MAX_MB * 1048576) {
+                    throw new Error("الفيديو أكبر من حد الحرق في المتصفح (" + BURNIN.MAX_MB + "MB) — قسّمه أو استخدم ملفاً أصغر");
+                }
+                if (total) { burnSetPct(1, got / total); } else { burnSetInfo(1, fmtMB(got)); }
+            }
+        } else {
+            var ab = await resp.arrayBuffer();
+            chunks.push(new Uint8Array(ab));
+            got = ab.byteLength;
+        }
+        burnSetPct(1, 1);
+        if (!got) { throw new Error("الفيديو فارغ أو تعذر قراءته من المحطة"); }
+        var blobIn = new Blob(chunks);
+        chunks = null;
+        if (blobIn.size > BURNIN.WARN_MB * 1048576) {
+            burnSetInfo(1, fmtMB(blobIn.size));
+            var goOn = confirm("الفيديو كبير (" + Math.round(blobIn.size / 1048576) +
+                "MB) — الحرق قد يستغرق وقتاً طويلاً أو يفشل بسبب ذاكرة المتصفح. متابعة؟");
+            if (!goOn) { throw new Error("أُلغي الحرق قبل البدء"); }
+        }
+        var ext = String(v.ext || ".mp4").toLowerCase();
+        if (!/^\.(mp4|mkv|mov|m4v)$/.test(ext)) { ext = ".mp4"; }
+        var inName = "in" + ext;
+
+        // 2) تجهيز المحرك + استضافة الملف + قراءة الأبعاد
+        burnStage(2);
+        burnMsg("جارٍ تجهيز محرك ffmpeg داخل المتصفح (~31MB تُنزَّل مرة واحدة ثم تُخزَّن مؤقتاً)…");
+        burnSetInfo(2, "…");
+        var ff = await burnEngine();
+        burnSetPct(2, 1);
+        var file = new File([blobIn], inName);
+        var mounted = false;
+        try {
+            try { await ff.createDir("/input"); } catch (e2) {}
+            await ff.mount("WORKERFS", { files: [file] }, "/input");
+            mounted = true;
+        } catch (e3) {
+            // وضع بديل: نسخ الملف إلى ذاكرة المحرك (أكتر استهلاكاً للذاكرة لكنه مضمون)
+            var buf = new Uint8Array(await blobIn.arrayBuffer());
+            await ff.writeFile(inName, buf);
+            buf = null;
+        }
+        blobIn = null;
+        var inPath = mounted ? "/input/" + inName : inName;
+        burnMsg("قراءة أبعاد الفيديو…");
+        burnLogs = [];
+        await ff.exec(["-i", inPath]);
+        var W = 0, H = 0, dur = 0, i2;
+        for (i2 = 0; i2 < burnLogs.length; i2++) {
+            var ln = burnLogs[i2];
+            if (ln.indexOf("Video:") >= 0 && !W) {
+                var m = ln.match(/(\d{2,5})x(\d{2,5})/);
+                if (m) { W = parseInt(m[1], 10); H = parseInt(m[2], 10); }
+            }
+            if (!dur) {
+                var d = ln.match(/Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/);
+                if (d) { dur = (parseInt(d[1], 10) * 3600 + parseInt(d[2], 10) * 60 + parseFloat(d[3])) * 1000; }
+            }
+        }
+        if (!W || !H) { W = 1280; H = 720; }
+        if (W % 2) { W--; } if (H % 2) { H--; }
+        if (!dur) { dur = v.duration_ms || 0; }
+
+        // رسم الطبقات وترتيب المدخلات
+        burnMsg("رسم الشعار والشريط والنصوص بدقة " + W + "×" + H + "…");
+        try { await ff.createDir("/ov"); } catch (e4) {}
+        var pngs = [];
+        if (logoOn) {
+            var u8 = await renderLogoPNG(W, H, p);
+            await ff.writeFile("/ov/logo.png", u8);
+            pngs.push("/ov/logo.png");
+        }
+        if (tickOn) {
+            var u8t = await renderTickerPNG(W, H, p, tickText);
+            await ff.writeFile("/ov/tick.png", u8t);
+            pngs.push("/ov/tick.png");
+        }
+        for (var li = 0; li < layers.length; li++) {
+            var u8l = await renderLayerPNG(W, H, layers[li]);
+            var pn = "/ov/lay" + li + ".png";
+            await ff.writeFile(pn, u8l);
+            pngs.push(pn);
+        }
+        var plan = [], nextIn = 1;
+        if (logoOn) { plan.push({ kind: "logo", input: nextIn++ }); }
+        if (tickOn) { plan.push({ kind: "tick", input: nextIn++ }); }
+        layers.forEach(function (t) { plan.push({ kind: "layer", input: nextIn++, x: t.x, y: t.y }); });
+        var g = buildBurnInGraph(p, plan);
+
+        // 3) الحرق (الترميز داخل المتصفح)
+        burnStage(3);
+        burnMsg("الحرق جارٍ — تقريباً 1-3 دقائق لكل دقيقة فيديو. أبقِ هذا التبويب مفتوحاً حتى الانتهاء.");
+        burnProgCb = function (pr) { burnSetPct(3, pr && pr.progress ? pr.progress : 0); };
+        burnLogs = [];
+        var args = ["-y", "-i", inPath];
+        // -loop 1: الصورة تصبح تياراً متواصلاً بطوابع زمنية حقيقية — بدونه يبقى توقيت
+        // الطبقة صفراً فلا يتحرك الشريط، وshortest=1 يمنع تكرار آخر إطار للأبد
+        for (i2 = 0; i2 < pngs.length; i2++) { args.push("-loop", "1", "-i", pngs[i2]); }
+        args.push("-filter_complex", g.graph,
+            "-map", g.out, "-map", "0:a?",
+            "-c:v", "libx264", "-preset", "ultrafast", "-crf", "23", "-pix_fmt", "yuv420p",
+            "-c:a", "aac", "-b:a", "160k",
+            "-movflags", "+faststart", "burned.mp4");
+        var code = await ff.exec(args);
+        burnProgCb = null;
+        if (code !== 0) {
+            throw new Error("تعذر الحرق (رمز " + code + ") — آخر رسائل ffmpeg:\n" + burnLogs.slice(-5).join("\n"));
+        }
+        burnSetPct(3, 1);
+        var out = new Uint8Array(await ff.readFile("burned.mp4"));
+        try {
+            await ff.deleteFile("burned.mp4");
+            for (i2 = 0; i2 < pngs.length; i2++) { await ff.deleteFile(pngs[i2]); }
+            if (mounted) { await ff.unmount("/input"); }
+            await ff.deleteDir("/input");
+            await ff.deleteDir("/ov");
+        } catch (e5) {}
+
+        // 4) الرفع على دفعات 8MB ثم التسجيل في المكتبة
+        burnStage(4);
+        burnMsg("رفع النسخة المحروقة إلى المحطة…");
+        burnSid = (Math.random().toString(16).slice(2, 10) + Math.random().toString(16).slice(2, 10))
+            .replace(/[^a-f0-9]/g, "");
+        while (burnSid.length < 16) { burnSid += "0"; }
+        var blobOut = new Blob([out], { type: "video/mp4" });
+        out = null;
+        var csz = BURNIN.CHUNK_MB * 1048576;
+        var nChunks = Math.max(1, Math.ceil(blobOut.size / csz));
+        for (var ci = 0; ci < nChunks; ci++) {
+            var piece = blobOut.slice(ci * csz, (ci + 1) * csz);
+            var base = ci / nChunks;
+            await burnXhr("/api/videos/upload-chunk?sid=" + burnSid + "&i=" + ci, piece,
+                function (frac) { burnSetPct(4, base + frac / nChunks); });
+        }
+        var fin = await burnXhr("/api/videos/upload-finish?sid=" + burnSid +
+            "&name=" + encodeURIComponent((v.name || "فيديو") + " — محروق") +
+            "&replace=" + encodeURIComponent(v.id) +
+            "&del=" + ($("burnInDel").checked ? "1" : "0"), new Blob([]), null);
+        burnSid = null;
+        burnSetPct(4, 1);
+        var nm = (fin.video && fin.video.name) || "";
+        var extra = fin.replaced_playlists ? " — واستُبدل الأصل في " + fin.replaced_playlists +
+            (fin.replaced_playlists === 1 ? " قائمة تشغيل" : " قوائم تشغيل") : "";
+        burnMsg("✅ اكتمل الحرق: أُضيف «" + nm + "» إلى المكتبة" + extra +
+            ". البث الخارج الآن محروق في كل المشغلات (VLC وأجهزة IPTV والتضمين).", false);
+        toast("الحرق اكتمل ✓ — النسخة المحروقة في المكتبة وتُبث الآن");
+        loadAll();
+    } catch (e) {
+        burnAbort();
+        var msg = e && e.message ? e.message : String(e);
+        burnMsg("❌ " + msg, true);
+    } finally {
+        burnBusy = false;
+        $("burnInStart").disabled = false;
+    }
+}
+
+function refreshBurnInVids() {
+    var sel = $("burnInVid");
+    if (!sel) { return; }
+    var cur = sel.value;
+    sel.textContent = "";
+    var ready = state.videos.filter(function (v) { return v.status === "ready"; });
+    if (!ready.length) {
+        var o = document.createElement("option");
+        o.value = "";
+        o.textContent = "لا توجد فيديوهات جاهزة في المكتبة";
+        sel.appendChild(o);
+        return;
+    }
+    ready.forEach(function (v) {
+        var o = document.createElement("option");
+        o.value = v.id;
+        o.textContent = v.name + " — " + fmtDur(v.duration_ms) +
+            (v.storage === "remote" ? " (عن بُعد)" : " (" + fmtMB(v.size_bytes) + ")");
+        sel.appendChild(o);
+    });
+    if (cur) { sel.value = cur; }
+}
+
+$("burnInStart").onclick = function () { burnInRun(); };
+$("burnInStop").onclick = function () {
+    burnAbort();
+    if (burnFF) { burnFF.terminate(); burnFF = null; burnFFLoading = null; }
+    burnBusy = false;
+    $("burnInStart").disabled = false;
+    burnProgCb = null;
+    burnMsg("أُوقِف المحرك — عند إعادة المحاولة سيُحمَّل من جديد (الحرق يبدأ من البداية).", false);
+};
+$("burnInReplace").onchange = function () {
+    var en = this.checked;
+    $("burnInDel").disabled = !en;
+    if (!en) { $("burnInDel").checked = false; }
+};
+refreshBurnInVids();
+
+// ================= البداية =================
+api("/api/session").then(function (r) {
+    state.authEnabled = r.auth_enabled;
+    $("brandName").textContent = r.app_name || "لوحة التحكم";
+    if (!r.auth_enabled || r.authed) { state.authed = true; showApp(); }
+    else showLogin();
+}).catch(showLogin);
+
+})();
+</script>
+</body>
+</html>
