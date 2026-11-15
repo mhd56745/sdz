@@ -478,7 +478,8 @@
             <p class="hint">
                 OBS يعمل هكذا: مدخلات (قائمة فيديوهات + شعار + شريط نصي) تُركَّب معاً لحظياً وتُخرَج للبث والتسجيل.
                 السكربت التالي — مولَّد من إعدادات استوديوك — يفعل الشيء نفسه بأمر ffmpeg واحد يعمل 24/7 على حاسوبك
-                (الخادم لا يشغّل ffmpeg): يوحّد كل الفيديوهات على لوحة 1280×720 واحدة، يركّب الشعار والشريط،
+                (الخادم لا يشغّل ffmpeg): يأخذ <b>قائمة فيديوهاتك</b> أو <b>رابط بث مباشر خارجي (IPTV)</b>
+                ويوحّد المصدر على لوحة 1280×720 واحدة، يركّب الشعار والشريط،
                 <b>يسجّل MP4 جاهزاً للرفع</b> ويبث <b>معاينة HLS تفتحها في VLC فوراً</b>.
             </p>
             <div class="grid2">
@@ -495,6 +496,13 @@
                             <option value="both">بث حي + تسجيل MP4 معاً</option>
                             <option value="rec">تسجيل MP4 فقط (رفع يدوي للمكتبة)</option>
                         </select></div>
+                    <div class="fld-box"><label class="fld">مصدر البث</label>
+                        <select id="obsSrc">
+                            <option value="videos">مجلد فيديوهات (قائمة تشغيل تتكرر)</option>
+                            <option value="url">رابط بث مباشر خارجي — حرق الهوية على البث (IPTV)</option>
+                        </select></div>
+                    <div class="fld-box" id="obsUrlBox" style="display:none"><label class="fld">رابط البث المباشر — m3u8 أو TS بالتوكن كما هو (قابل للتعديل في السكربت لاحقاً)</label>
+                        <input id="obsUrl" type="text" style="direction:ltr" placeholder="http://host:port/user/mono.m3u8?token=…"></div>
                     <div class="fld-box"><label class="fld">اسم القناة الحية (أحرف لاتينية)</label>
                         <input id="obsChan" type="text" value="main" style="direction:ltr"></div>
                     <div class="fld-box"><label class="fld">رابط قناتك الحية — ضعه في قناة «بث خارجي (HLS)»</label>
@@ -502,7 +510,7 @@
                     <ol style="margin:8px 18px 8px 0;padding:0;font-size:13px;line-height:2">
                         <li>ثبّت ffmpeg (نسخة <b>gyan.dev full</b> لويندوز) — نفس متطلبات الحرق أعلاه.</li>
                         <li>احفظ السكربت في مجلد جديد باسم <b>mini-obs.bat</b> (ويندوز) أو <b>mini-obs.sh</b> (لينكس/ماك).</li>
-                        <li>ضع فيديوهاتك داخل مجلد فرعي باسم <b>videos</b> (يُنشأ تلقائياً).</li>
+                        <li>اختر المصدر أعلاه: «مجلد فيديوهات» — ضعها في مجلد <b>videos</b> — أو «رابط بث مباشر» والصق الرابط مع التوكن كما هو.</li>
                         <li>لوضع «بث حي»: أنشئ ملف <b>push.key</b> بجانب السكربت واكتب فيه كلمة مرور اللوحة فقط (سطر واحد).</li>
                         <li>أنشئ قناة <b>«بث خارجي (HLS)»</b> في تبويب القنوات وضع فيها رابط قناتك الحية الظاهر أعلاه — الرابط ثابت.</li>
                         <li>شغّل السكربت: نقرة مزدوجة في ويندوز أو <code>sh mini-obs.sh</code> — خلال ~20 ثانية يظهر بثك <b>المحروق</b> في القناة وVLC وأجهزة IPTV.</li>
@@ -1441,7 +1449,22 @@ function buildObsScript() {
     var NL = win ? "\r\n" : "\n";
     var g = buildObsFilter(p, os, logoOn, tickOn);
     var d = new Date().toISOString().slice(0, 10);
-    var cmd = ["ffmpeg -y -re -f concat -safe 0 -stream_loop -1 -i playlist.txt"];
+    // المصدر: قائمة فيديوهات (concat متكرر) أو رابط بث حي خارجي
+    var src = ($("obsSrc") ? String($("obsSrc").value) : "videos") === "url" ? "url" : "videos";
+    var srcUrl = String(($("obsUrl") && $("obsUrl").value) || "").trim();
+    var UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36";
+    if (src === "url" && !srcUrl) {
+        return "— وضع «رابط بث مباشر»: الصق الرابط في الحقل أعلاه (m3u8/TS مع التوكن كما هو) وسيُولَّد السكربت فوراً —";
+    }
+    var cmd;
+    if (src === "url") {
+        // بث حي خارجي: بلا -re (المصدر يصل لحظياً) + مهلة قراءة وإعادة اتصال
+        // -i من متغير SRC كي يجدي تعديل التوكن/الرابط أعلى السكربت دون إعادة توليد
+        cmd = ["ffmpeg -y -user_agent \"" + UA + "\" -rw_timeout 20000000 -reconnect 1 -reconnect_delay_max 5 -i " +
+            (win ? "\"%SRC%\"" : "\"$SRC\"")];
+    } else {
+        cmd = ["ffmpeg -y -re -f concat -safe 0 -stream_loop -1 -i playlist.txt"];
+    }
     if (logoOn) { cmd.push("-loop 1 -i logo.png"); }
     cmd.push("-filter_complex \"" + g.graph + "\"");
     cmd.push("-map \"" + g.out + "\" -map 0:a?");
@@ -1465,8 +1488,10 @@ function buildObsScript() {
         S.push("#  مولَّد من لوحة الاستوديو (" + d + ") — " + location.origin);
         S.push("# ============================================================");
         S.push('cd "$(dirname "$0")" || exit 1');
-        S.push("mkdir -p videos recorded push");
-        S.push("# 1) ضع فيديوهاتك (mp4/mkv/mov) داخل مجلد videos");
+        S.push(src === "url" ? "mkdir -p recorded push" : "mkdir -p videos recorded push");
+        S.push(src === "url" ? "# 1) رابط البث المباشر — عدّل SRC بالأسفل متى تغيّر التوكن ثم احفظ السكربت"
+                             : "# 1) ضع فيديوهاتك (mp4/mkv/mov) داخل مجلد videos");
+        if (src === "url") { S.push("SRC=" + shQ(srcUrl)); }
         S.push("# 2) شغّل:  sh mini-obs.sh      — للإيقاف: Ctrl+C");
         S.push("# 3) وضع «بث حي»: يُرفع البث تلقائياً إلى قناتك (راجع push.key والرابط في اللوحة)");
         S.push("# 4) وضع «تسجيل»: الملفات في recorded/ — ملف كل 10 دقائق لرفعه إلى المكتبة");
@@ -1510,15 +1535,23 @@ function buildObsScript() {
         }
         S.push("");
         S.push("while :; do");
-        S.push("  : > playlist.txt");
-        S.push("  for f in videos/*.mp4 videos/*.MP4 videos/*.mkv videos/*.mov; do");
-        S.push('    [ -f "$f" ] && printf "file \'%s\'\\n" "$PWD/$f" >> playlist.txt');
-        S.push("  done");
-        S.push("  if [ ! -s playlist.txt ]; then");
-        S.push('    echo "== ضع ملفات الفيديو في مجلد videos ثم أعد المحاولة =="');
-        S.push("    sleep 10");
-        S.push("    continue");
-        S.push("  fi");
+        if (src === "url") {
+            S.push('  if [ -z "$SRC" ]; then');
+            S.push('    echo "== ضع رابط البث المباشر في متغير SRC أعلى السكربت ثم أعد المحاولة =="');
+            S.push("    sleep 10");
+            S.push("    continue");
+            S.push("  fi");
+        } else {
+            S.push("  : > playlist.txt");
+            S.push("  for f in videos/*.mp4 videos/*.MP4 videos/*.mkv videos/*.mov; do");
+            S.push('    [ -f "$f" ] && printf "file \'%s\'\\n" "$PWD/$f" >> playlist.txt');
+            S.push("  done");
+            S.push("  if [ ! -s playlist.txt ]; then");
+            S.push('    echo "== ضع ملفات الفيديو في مجلد videos ثم أعد المحاولة =="');
+            S.push("    sleep 10");
+            S.push("    continue");
+            S.push("  fi");
+        }
         S.push("");
         S.push("  " + ffLine);
         S.push("");
@@ -1534,7 +1567,7 @@ function buildObsScript() {
         S.push("title mini-obs — بث حي بأسلوب OBS Studio");
         S.push("rem mini-obs — مولَّد من لوحة الاستوديو (" + d + ") — " + location.origin);
         S.push('cd /d "%~dp0"');
-        S.push("if not exist videos mkdir videos");
+        if (src !== "url") { S.push("if not exist videos mkdir videos"); }
         S.push("if not exist recorded mkdir recorded");
         S.push("if not exist push mkdir push");
         if (tickOn) {
@@ -1555,13 +1588,22 @@ function buildObsScript() {
             S.push('curl -fsS -m 20 -X POST -H "X-Push-Key: %KEY%" "%PUSH_URL%/__reset__" >nul 2>&1');
             S.push('start /b "" cmd /c "%~f0" __push__');
         }
+        if (src === "url") { S.push('set "SRC=' + srcUrl.replace(/%/g, "%%") + '"'); }
         S.push(":loop");
-        S.push("(for %%f in (videos\\*.mp4 videos\\*.MP4 videos\\*.mkv videos\\*.mov) do @echo file '%%~ff')>playlist.txt");
-        S.push("for %%A in (playlist.txt) do if %%~zA EQU 0 (");
-        S.push("  echo == ضع ملفات الفيديو في مجلد videos ثم أعد المحاولة ==");
-        S.push("  timeout /t 10 /nobreak >nul");
-        S.push("  goto :loop");
-        S.push(")");
+        if (src === "url") {
+            S.push('if "%SRC%"=="" (');
+            S.push("  echo == ضع رابط البث المباشر في متغير SRC أعلى السكربت ثم أعد المحاولة ==");
+            S.push("  timeout /t 10 /nobreak >nul");
+            S.push("  goto :loop");
+            S.push(")");
+        } else {
+            S.push("(for %%f in (videos\\*.mp4 videos\\*.MP4 videos\\*.mkv videos\\*.mov) do @echo file '%%~ff')>playlist.txt");
+            S.push("for %%A in (playlist.txt) do if %%~zA EQU 0 (");
+            S.push("  echo == ضع ملفات الفيديو في مجلد videos ثم أعد المحاولة ==");
+            S.push("  timeout /t 10 /nobreak >nul");
+            S.push("  goto :loop");
+            S.push(")");
+        }
         S.push("");
         S.push(ffLine);
         S.push("");
@@ -1609,6 +1651,12 @@ refreshBurnCmd = function () { _refreshBurnCmdBase(); refreshObsCmd(); };
     });
 $("obsOs").onchange = refreshObsCmd;
 $("obsMode").onchange = refreshObsCmd;
+$("obsSrc").onchange = function () {
+    $("obsUrlBox").style.display = this.value === "url" ? "" : "none";
+    refreshObsCmd();
+};
+$("obsUrl").addEventListener("input", refreshObsCmd);
+$("obsUrl").addEventListener("change", refreshObsCmd);
 $("obsChan").addEventListener("input", refreshObsCmd);
 $("obsChan").addEventListener("change", refreshObsCmd);
 $("copyObsBtn").onclick = function () { copyText($("obsCmd").textContent); };
